@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elffuss Copiloto · notas de reunión zero-trust, en tu navegador</title>
+<meta name="description" content="Notas de llamada zero-trust: el audio no sale de tu equipo, no hay cuenta, no hay servidor y no se guardan huellas de voz. Rellena la ficha del cliente sola y la manda a tu CRM, webhook o Google Forms.">
+<link rel="canonical" href="https://copilot.elffuss.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Elffuss">
+<meta property="og:title" content="Elffuss Copiloto — notas de reunión zero-trust (el audio no sale de tu equipo)">
+<meta property="og:description" content="Escucha la llamada, separa quién habla, rellena la ficha y la manda a tu CRM/Google Forms. Sin cuenta, sin nube, sin huella de voz guardada.">
+<meta property="og:url" content="https://copilot.elffuss.com/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0d10'/%3E%3Ctext x='16' y='23' font-family='Georgia,serif' font-size='19' fill='%23c8a06a' text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#090a11">
+<style>
+  :root{--bg:#090a11;--bg2:#101317;--bg3:#161a24;--line:#20252c;--fg:#eae8f2;--mut:#8b929c;--accent:#c8a06a;--accent-2:#e6c294;--indigo:#8272ff;--ok:#54dcc6;--rec:#c0655a;--warn:#c9a15a;--serif:"Iowan Old Style",Georgia,serif;--ease:cubic-bezier(.22,.61,.36,1)}
+  *{box-sizing:border-box;margin:0}
+  body{font-family:-apple-system,system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);height:100vh;display:flex;flex-direction:column;font-size:15px;overflow:hidden;position:relative}
+  .aurora{position:fixed;inset:-20% -10%;z-index:-3;pointer-events:none;filter:blur(40px) saturate(115%);background:radial-gradient(38% 42% at 20% 18%,rgba(84,220,198,.10),transparent 70%),radial-gradient(42% 46% at 82% 14%,rgba(130,114,255,.16),transparent 72%),radial-gradient(48% 52% at 66% 82%,rgba(231,121,207,.10),transparent 74%),radial-gradient(52% 56% at 10% 84%,rgba(200,160,106,.10),transparent 76%);animation:auroradrift 36s ease-in-out infinite alternate}
+  @keyframes auroradrift{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(2.5%,-2%,0) scale(1.06)}100%{transform:translate3d(-2%,2.5%,0) scale(1.03)}}
+  .cursorglow{position:fixed;inset:0;z-index:-1;pointer-events:none;mix-blend-mode:screen;background:radial-gradient(340px 340px at var(--mx,50%) var(--my,28%),rgba(200,160,106,.12),rgba(130,114,255,.08) 44%,transparent 68%)}
+  @media(prefers-reduced-motion:reduce){.aurora{animation:none}}
+  header{padding:14px 24px;display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);flex-wrap:wrap;flex:0 0 auto}
+  header h1{font-family:var(--serif);font-size:1.15rem;font-weight:600;letter-spacing:.2px}
+  header .sub{font-size:.68rem;color:var(--mut);text-transform:uppercase;letter-spacing:.16em}
+  header .hnav{margin-left:auto;display:flex;gap:16px;align-items:center}
+  header .hnav a{color:var(--accent);text-decoration:none;font-size:.7rem;text-transform:uppercase;letter-spacing:.12em}
+  .uitoggle{background:none;border:1px solid var(--line);color:var(--accent);border-radius:99px;padding:3px 10px;font:inherit;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+  .uitoggle:hover{border-color:var(--accent)}
+  /* Con 9 campos y una ventana baja, la columna aplastaba el recuadro de «qué falta» hasta dejar solo su título. */
+  .col-board{overflow-y:auto;min-height:0}
+  .col-board>*{flex-shrink:0}
+  .recchip{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--rec);border:1px solid rgba(192,101,90,.45);border-radius:99px;padding:3px 9px;font-family:ui-monospace,monospace;white-space:nowrap}
+  .recchip.on::before{content:'●';margin-right:5px;animation:recblink 1.2s steps(2,start) infinite}
+  .recchip.done{color:var(--ok);border-color:rgba(84,220,198,.35)}
+  .recchip[hidden]{display:none}
+  .iachip{color:var(--accent-2);border-color:rgba(230,194,148,.4)}
+  .advice .tip{display:block;color:var(--fg);margin-bottom:8px}
+  @keyframes recblink{to{visibility:hidden}}
+  @media(prefers-reduced-motion:reduce){.recchip.on::before{animation:none}}
+  .clearcache{display:block;margin:10px auto 0;background:none;border:1px solid var(--line);color:var(--mut);border-radius:99px;padding:6px 14px;font:inherit;font-size:.72rem;cursor:pointer}
+  .clearcache:hover{color:var(--fg);border-color:var(--accent)}
+  .clearcache[hidden]{display:none}
+  @media(max-width:560px){header .sub{display:none}}
+  .screen{flex:1;display:flex;flex-direction:column;min-height:0}
+  .screen[hidden]{display:none}
+  select,input[type=text],input[type=url]{width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:11px;font:inherit}
+  /* ── setup ── */
+  #setup{align-items:center;justify-content:center;padding:24px;overflow:auto;position:relative}
+  /* En escritorio el centrado vertical con desbordamiento dejaba el principio de la tarjeta (elfa,
+     título, entradilla) fuera de alcance: 165 px a 1280×860. «safe center», como en el Traductor. */
+  #setup{justify-content:safe center}
+  @supports(height:100dvh){body{height:100dvh}}
+  :focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+  .starterr{font-size:.8rem;color:var(--rec);text-align:left;margin:12px 0 0;line-height:1.5}
+  .starterr a{color:var(--accent)}
+  .starterr[hidden]{display:none}
+  .dest .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-bottom:12px}
+  .dest .row button{background:none;border:1px solid var(--line);color:var(--accent);border-radius:99px;padding:6px 12px;font:inherit;font-size:.72rem;cursor:pointer}
+  .dest .row button:hover{border-color:var(--accent)}
+  .dest .row span{font-size:.7rem;color:var(--ok)}
+  .dest .map{font-size:.7rem;color:var(--mut);line-height:1.5;margin:-4px 0 12px}
+  .dest .map.warn{color:var(--warn)}
+  .dest .map[hidden]{display:none}
+  .dest .fromlink{font-size:.66rem;color:var(--ok);margin-left:6px}
+  #setup .setup-galaxy{position:absolute;inset:0;z-index:0;pointer-events:none}
+  #setup .setup-galaxy canvas.gl{position:absolute;inset:0;width:100%;height:100%}
+  .setupcard{position:relative;z-index:1;max-width:500px;width:100%;text-align:center;background:linear-gradient(180deg,rgba(22,26,38,.62),rgba(22,26,38,.34));border:1px solid var(--line);border-radius:16px;padding:30px 28px;backdrop-filter:blur(14px)}
+  .setupcard .elf{width:96px;height:96px;margin:0 auto 4px;display:block;filter:drop-shadow(0 12px 34px rgba(130,114,255,.4));animation:elffloat 5s ease-in-out infinite}
+  @keyframes elffloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  @media(prefers-reduced-motion:reduce){.setupcard .elf{animation:none}}
+  .setupcard h2{font-family:var(--serif);font-size:1.8rem;font-weight:600;margin-bottom:8px;color:var(--fg)}
+  .setupcard h2 b{background:linear-gradient(90deg,var(--accent),var(--indigo));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .setupcard .lead{color:var(--mut);font-size:.9rem;line-height:1.55;margin-bottom:22px}
+  .skgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+  @media(max-width:520px){.skgrid{grid-template-columns:1fr}}
+  .skitem{display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left;padding:12px;border:1px solid var(--line);border-radius:11px;background:transparent;color:var(--fg);cursor:pointer;font:inherit;transition:border-color .25s,background .25s,transform .25s}
+  .skitem:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .skitem.on{border-color:var(--accent);background:linear-gradient(120deg,rgba(200,160,106,.12),rgba(130,114,255,.06))}
+  .skitem .ico{font-size:1.25rem}
+  .skitem b{font-size:.86rem}
+  .skitem span{color:var(--mut);font-size:.72rem;line-height:1.35}
+  .fld{text-align:left;font-size:.64rem;text-transform:uppercase;letter-spacing:.13em;color:var(--mut);display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+  .callaudio{display:flex;gap:9px;align-items:flex-start;text-align:left;font-size:.78rem;color:var(--mut);margin:2px 0 16px;line-height:1.4;cursor:pointer}
+  .callaudio input{margin-top:2px;accent-color:var(--accent);flex:none}
+  .callaudio b{color:var(--accent-2)}
+  .callaudio.off{opacity:.55;cursor:default}
+  .capnote{text-align:left;font-size:.73rem;line-height:1.5;color:var(--mut);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:8px;padding:10px 12px;margin:0 0 16px;background:rgba(201,161,90,.05)}
+  .capnote b{color:var(--accent-2)}
+  .capnote[hidden]{display:none}
+  /* ── zero-trust ── */
+  .ztrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:0 0 14px}
+  .ztrow span{font-size:.63rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ok);border:1px solid rgba(84,220,198,.32);border-radius:99px;padding:4px 9px;background:rgba(84,220,198,.06)}
+  .zt{text-align:left;border:1px solid var(--line);border-radius:11px;padding:0 14px;margin-bottom:16px;background:rgba(0,0,0,.15)}
+  .zt summary{cursor:pointer;padding:12px 0;font-size:.84rem;color:var(--ok);list-style:none}
+  .zt summary::-webkit-details-marker{display:none}
+  .zt[open] summary{border-bottom:1px solid var(--line);margin-bottom:10px}
+  .zt ul{margin:0;padding:0 0 12px 16px;font-size:.74rem;color:var(--mut);line-height:1.6}
+  .zt li{margin-bottom:6px} .zt li b{color:var(--fg);font-weight:600}
+  .zt .no{color:var(--ok)} .zt .si{color:var(--accent-2)}
+  .mode{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--mut);border:1px solid var(--line);border-radius:99px;padding:3px 9px;font-family:ui-monospace,monospace}
+  .mode.both{color:var(--ok);border-color:rgba(84,220,198,.35)}
+  .dest{text-align:left;border:1px solid var(--line);border-radius:11px;padding:0 14px;margin-bottom:16px;background:rgba(0,0,0,.15)}
+  .dest summary{cursor:pointer;padding:12px 0;font-size:.84rem;color:var(--accent-2);list-style:none}
+  .dest summary::-webkit-details-marker{display:none}
+  .dest[open] summary{border-bottom:1px solid var(--line);margin-bottom:12px}
+  .dest .fld{margin-bottom:12px}
+  .dest .mini{font-size:.7rem;color:var(--mut);line-height:1.5;padding-bottom:12px}
+  .dest .mini a{color:var(--accent)}
+  .primary{width:100%;background:var(--accent);color:#141009;border:none;border-radius:6px;padding:15px;font-weight:700;font-size:.98rem;cursor:pointer;letter-spacing:.02em}
+  .primary:hover{filter:brightness(1.06)} .primary:disabled{opacity:.5;cursor:default}
+  .setupcard .fine{font-size:.72rem;color:var(--mut);margin-top:14px;line-height:1.5}
+  /* ── live ── */
+  #live{padding:0}
+  .livetop{display:flex;align-items:center;gap:12px;padding:13px 22px;border-bottom:1px solid var(--line);flex:0 0 auto}
+  .livetop .name{font-family:var(--serif);font-size:1.05rem;font-weight:600}
+  .livetop .sp{margin-left:auto;display:flex;gap:8px}
+  .livetop button{background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px 14px;font-weight:600;font-size:.78rem;cursor:pointer}
+  .livetop button.stop{color:var(--rec)} .livetop button.exp{color:var(--accent)}
+  .livetop button:disabled{opacity:.5;cursor:default}
+  .livetop{flex-wrap:wrap}
+  .livetop button[hidden]{display:none}
+  /* El resultado de «Enviar» vive junto a la barra de arriba: dentro de la ficha lo borraba la
+     siguiente frase transcrita. */
+  .sendres{flex-basis:100%;text-align:right;font-size:.72rem;line-height:1.4;color:var(--ok)}
+  .sendres.warn{color:var(--warn)} .sendres.err{color:var(--rec)}
+  .sendres[hidden]{display:none}
+  .iaretry{background:none;border:1px solid rgba(230,194,148,.4);color:var(--accent-2);border-radius:99px;padding:3px 9px;font:inherit;font-size:.62rem;cursor:pointer}
+  .iaretry[hidden]{display:none}
+  /* Mientras se envía, Enviar no se desactiva (tiraba el foco al <body>): aria-disabled y se ignora. */
+  .livetop button[aria-disabled="true"],.board .exprow button[aria-disabled="true"]{opacity:.5;cursor:default}
+  /* La descarga de la IA que sigue en marcha al volver al inicio, con su Cancelar. */
+  .iadl{display:flex;gap:10px;align-items:center;justify-content:space-between;text-align:left;font-size:.74rem;line-height:1.4;color:var(--accent-2);margin:-8px 0 16px}
+  .iadl[hidden]{display:none}
+  .iadl .iaretry{flex:none;font-size:.7rem;padding:4px 10px}
+  .sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .destlive{padding:12px 22px 0;flex:0 0 auto}
+  .destlive[hidden]{display:none}
+  .destlive .dest{max-width:620px;margin:0 0 0 auto}
+  .livewrap{flex:1;display:flex;min-height:0}
+  @media(max-width:820px){.livewrap{flex-direction:column}}
+  .col-board{flex:0 0 44%;max-width:460px;border-right:1px solid var(--line);padding:18px 20px;overflow-y:auto;display:flex;flex-direction:column}
+  @media(max-width:820px){.col-board{flex:0 0 auto;max-width:none;border-right:0;border-bottom:1px solid var(--line)}}
+  .col-conv{flex:1;display:flex;flex-direction:column;min-width:0}
+  canvas.wave{display:block;width:100%;height:46px;padding:8px 20px 0;flex:0 0 auto}
+  .status{text-align:center;font-size:.7rem;color:var(--mut);padding:4px 16px;text-transform:uppercase;letter-spacing:.1em;flex:0 0 auto}
+  .status.err{color:var(--rec)} .status.work{color:var(--warn)}
+  .transcript{flex:1 1 auto;overflow-y:auto;padding:8px 22px 22px}
+  /* Móvil (columnas apiladas): la página ENTERA se desplaza. Con body a 100vh y overflow:hidden el
+     iPhone no dejaba bajar: la ficha ocupaba más que la pantalla y el resto quedaba cortado, y en el
+     inicio el centrado vertical dejaba fuera de alcance lo de arriba y lo de abajo. La barra de
+     Parar/CSV/Enviar se queda pegada arriba para poder parar sin volver al principio. */
+  @media(max-width:820px){
+    body{height:auto;min-height:100dvh;overflow:visible}
+    .screen,.livewrap{flex:none}
+    #setup{justify-content:flex-start;overflow:visible}
+    .col-board,.transcript{overflow:visible}
+    .livetop{position:sticky;top:0;z-index:5;background:var(--bg)}
+  }
+  .tline{padding:9px 0;border-bottom:1px solid var(--line);font-size:.92rem;line-height:1.4}
+  .tline .who{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--indigo);margin-bottom:3px}
+  .tline.b .who{color:var(--accent)}
+  .empty{color:var(--mut);font-style:italic;text-align:center;margin:auto;font-size:.85rem}
+  /* board */
+  .board .btitle{font-family:var(--serif);font-size:1.05rem;margin-bottom:2px}
+  .board .bsub{font-size:.6rem;text-transform:uppercase;letter-spacing:.14em;color:var(--mut);margin-bottom:12px;font-family:ui-monospace,monospace}
+  .board .bsub b{float:right;color:var(--accent-2);font-weight:500}
+  .barwrap{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-bottom:14px}
+  .barwrap>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--indigo));transition:width .6s var(--ease)}
+  .slot{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg3);margin-bottom:7px;transition:border-color .35s,background .35s}
+  .slot .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:.6rem;color:transparent;margin-top:1px;transition:all .35s}
+  .slot .k{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);font-family:ui-monospace,monospace}
+  .slot .v{font-size:.9rem;line-height:1.3;word-break:break-word}
+  .slot .lbl{font-size:.86rem;color:var(--mut)}
+  .slot.done{border-color:var(--accent);background:linear-gradient(120deg,rgba(200,160,106,.1),rgba(130,114,255,.05))}
+  .slot.done .dot{background:var(--ok);border-color:var(--ok);color:#06210b}
+  .slot.done .lbl{color:var(--fg)}
+  .slot.just{animation:pop .55s var(--ease)}
+  @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.03)}100%{transform:scale(1)}}
+  .advice{margin-top:auto;padding:12px 14px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;background:rgba(200,160,106,.05);font-size:.9rem;line-height:1.4;color:var(--accent-2)}
+  .advice .k{display:block;font-family:ui-monospace,monospace;font-size:.55rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-bottom:5px}
+  .board .exprow{display:flex;gap:8px;margin-top:12px}
+  .board .exprow button{flex:1;background:transparent;color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:9px;font:inherit;font-size:.76rem;cursor:pointer}
+  .board .exprow button:hover{border-color:var(--accent)}
+  .sent{font-size:.66rem;color:var(--ok);text-align:center;margin-top:8px;min-height:1em}
+  /* La descarga de la primera vez: una barra dentro de la barra de arriba, nunca un velo encima. El
+     velo tapaba Parar, CSV y Enviar durante toda la descarga con el micro (y la grabación) ya en marcha. */
+  .dlbar{flex-basis:100%;display:flex;gap:10px;align-items:center;font-size:.72rem;color:var(--warn)}
+  .dlbar[hidden]{display:none}
+  .dlbar .bar{flex:1;max-width:360px;min-width:60px;height:5px;border-radius:99px;background:var(--line);overflow:hidden}
+  .dlbar .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--indigo));transition:width .25s ease}
+  .dlbar .pct{color:var(--mut);font-family:ui-monospace,monospace;font-size:.66rem;white-space:nowrap}
+  footer{text-align:center;font-size:.66rem;color:var(--mut);padding:9px;border-top:1px solid var(--line);flex:0 0 auto}
+  footer a{color:var(--accent);text-decoration:none}
+  footer .attrib{display:block;margin-top:5px;opacity:.72;font-size:.6rem;line-height:1.5}
+  #iaLbl a{color:var(--accent)}
+.dlnote{margin:.5em 0 0;font-size:.85em;opacity:.8;text-align:center;text-wrap:balance}
+</style>
+</head>
+<body>
+<div class="aurora"></div><div class="cursorglow" id="cursorglow"></div>
+<header>
+  <h1 data-i18n="h1">Elffuss Copiloto</h1><span class="sub" data-i18n="hsub">local · offline · en tu navegador</span>
+  <nav class="hnav" aria-label="Elffuss"><button id="uiToggle" class="uitoggle" type="button" lang="en" aria-label="Switch the interface to English">English</button><a href="https://copilot.elffuss.com/blog/" target="_blank" rel="noopener">Blog</a><a href="https://translator.elffuss.com/" target="_blank" rel="noopener" data-i18n="navTr">Traductor</a><a href="https://claw.elffuss.com/" target="_blank" rel="noopener">Claw</a><a href="https://elffuss.com" target="_blank" rel="noopener">elffuss</a></nav>
+</header>
+
+<!-- SETUP -->
+<main id="setup" class="screen">
+  <div class="setup-galaxy" id="setupGalaxy"></div>
+  <div class="setupcard">
+    <svg class="elf" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M108 22 l2.6 6.4 6.4 2.6 -6.4 2.6 -2.6 6.4 -2.6-6.4 -6.4-2.6 6.4-2.6 Z" fill="#ffd76a" opacity=".9"/>
+      <circle cx="18" cy="34" r="2.6" fill="#ffd76a" opacity=".7"/>
+      <path d="M64 22 C 32 22 22 50 24 84 C 25 98 34 108 44 110 L 44 66 C 44 46 52 36 64 36 C 76 36 84 46 84 66 L 84 110 C 94 108 103 98 104 84 C 106 50 96 22 64 22 Z" fill="#f7c948"/>
+      <path d="M34 76 L12 54 C 8 68 14 82 32 85 Z" fill="#ffe8d6"/><path d="M30 76 L18 62 C 16 70 20 78 30 80 Z" fill="#f5c9a8"/>
+      <path d="M94 76 L116 54 C 120 68 114 82 96 85 Z" fill="#ffe8d6"/><path d="M98 76 L110 62 C 112 70 108 78 98 80 Z" fill="#f5c9a8"/>
+      <circle cx="64" cy="72" r="29" fill="#ffe8d6"/>
+      <path d="M35 72 C 35 46 47 34 64 34 C 81 34 93 46 93 72 C 93 61 87 56 80 53 C 73 50 70 45 64 45 C 58 45 55 50 48 53 C 41 56 35 61 35 72 Z" fill="#ffd76a"/>
+      <g fill="#5fbf6e"><ellipse cx="42" cy="42" rx="7" ry="3.2" transform="rotate(-28 42 42)"/><ellipse cx="53" cy="35.5" rx="7" ry="3.2" transform="rotate(-12 53 35.5)"/><ellipse cx="64" cy="33.5" rx="7" ry="3.2"/><ellipse cx="75" cy="35.5" rx="7" ry="3.2" transform="rotate(12 75 35.5)"/><ellipse cx="86" cy="42" rx="7" ry="3.2" transform="rotate(28 86 42)"/></g>
+      <circle cx="64" cy="33.5" r="2.4" fill="#ff4d8d"/>
+      <circle cx="52" cy="73" r="3.8" fill="#3b6fd4"/><circle cx="53.2" cy="71.8" r="1.2" fill="#fff"/>
+      <circle cx="76" cy="73" r="3.8" fill="#3b6fd4"/><circle cx="77.2" cy="71.8" r="1.2" fill="#fff"/>
+      <circle cx="44" cy="83" r="5" fill="#ffb3c0" opacity=".55"/><circle cx="84" cy="83" r="5" fill="#ffb3c0" opacity=".55"/>
+      <path d="M56 87 Q 64 94 72 87" fill="none" stroke="#d4826a" stroke-width="3" stroke-linecap="round"/>
+    </svg>
+    <h2 data-i18n="h2"><b>Elffuss</b> Copiloto</h2>
+    <p class="lead" data-i18n="lead">Escucha tu llamada, <b>rellena la ficha del cliente sola</b> y la manda a donde tú digas. Todo en tu navegador — el audio no sale de tu equipo. 😉</p>
+    <div class="ztrow"><span data-i18n="b1">sin registro</span><span data-i18n="b2">todo en tu navegador</span><span data-i18n="b3">se graba solo si tú quieres</span><span data-i18n="b4">tu voz no se guarda</span></div>
+    <div class="skgrid" id="skGrid" role="group" data-i18n-aria="skGroup" aria-label="Qué quieres que haga"></div>
+    <label class="fld"><span data-i18n="lblLang">Idioma de la conversación</span><select id="lang"></select></label>
+    <label class="fld"><span data-i18n="lblMic">Micrófono</span><select id="micDev"><option value="">Por defecto</option></select></label>
+    <label class="callaudio" id="callAudioLbl"><input type="checkbox" id="callAudio"><span data-i18n="callAudio">🖥️ Capturar también el <b>audio de la llamada</b> (videollamada): compartes una pestaña o ventana con audio y oigo a los dos.</span></label>
+    <label class="callaudio" id="recLbl"><input type="checkbox" id="recOpt"><span data-i18n="recOpt">🔴 Grabar la conversación: se guarda en tu equipo como audio comprimido (unos 11 MB por hora).</span></label>
+    <label class="callaudio" id="iaLbl"><input type="checkbox" id="iaOpt"><span>🧠 IA avanzada: comprobando este dispositivo…</span></label>
+    <p class="iadl" id="iaDl" hidden><span id="iaDlMsg"></span><button type="button" id="iaCancel" class="iaretry" data-i18n="iaCancel">Cancelar la descarga</button></p>
+    <p class="capnote" id="capnote" hidden></p>
+    <details class="zt" id="zt">
+      <summary data-i18n="ztSum">🛡️ Tu llamada se queda en tu equipo · ver qué sale exactamente</summary>
+      <ul>
+        <li data-i18n="zt1"><b class="no">Tu voz no sale de aquí.</b> La transcripción se hace en tu propio navegador: no hay ningún servidor escuchando.</li>
+        <li data-i18n="zt2"><b class="no">Sin registros.</b> No necesitas cuenta ni contraseña: abres y empiezas.</li>
+        <li data-i18n="zt3"><b class="no">Solo se graba si tú lo pides.</b> Si no marcas «Grabar», el audio se usa al momento y se descarta. Si lo marcas, se guarda comprimido en tu equipo, nunca en un servidor. La transcripción vive en esta pestaña y desaparece al cerrarla.</li>
+        <li data-i18n="zt4"><b class="no">Sabe quién habla, pero no quién eres.</b> Compara las voces solo durante la llamada y lo olvida al terminar: no guarda ni envía huellas de voz.</li>
+        <li data-i18n="zt5"><b class="si">La primera vez</b> se descargan los modelos de IA desde Hugging Face y jsDelivr, como cualquier otra descarga: no se envía nada tuyo. Después se quedan guardados y transcribe incluso sin internet.</li>
+        <li data-i18n="zt6"><b class="si">La ficha sale solo cuando pulsas «Enviar»</b>: sus campos, nunca el audio ni la transcripción, y al destino que <b>tú</b> elijas.</li>
+        <li data-i18n="zt7">En tu equipo solo se guardan tu idioma, los modelos descargados y, si la activas, la grabación que descargues.</li>
+        <li data-i18n="zt8"><b>Un buen gesto:</b> cuéntale a la otra persona que estás tomando notas. Y si grabas, avísale siempre: en muchos sitios es obligatorio pedir permiso.</li>
+      </ul>
+    </details>
+    <details class="dest" id="dest">
+      <summary><span data-i18n="destSum">📤 Destino de los datos (opcional)</span><span class="fromlink" id="fromLink" data-i18n="fromLink" hidden>· configurado desde un enlace</span></summary>
+      <label class="fld">Webhook / API (POST JSON)<input id="webhook" type="url" data-i18n-ph="phWebhook" placeholder="https://tu-crm.com/api/leads" autocomplete="off" spellcheck="false"></label>
+      <label class="fld"><span data-i18n="lblForm">Google Forms (pega el enlace «prerrellenado»)</span><input id="gform" type="url" data-i18n-ph="phForm" placeholder="https://docs.google.com/forms/d/e/…/viewform?entry.123=nombre&entry.456=telefono" autocomplete="off" spellcheck="false"></label>
+      <p class="map" id="gformMap" aria-live="polite" hidden></p>
+      <p class="mini" data-i18n="mini">En el «prerrellenado» pon el <b>nombre del campo</b> como valor (nombre, telefono, email…) y lo mapeo solo.</p>
+      <div class="row"><button type="button" id="teamLink" data-i18n="teamLink">🔗 Copiar enlace para el equipo</button><span id="teamLinkRes" role="status"></span></div>
+    </details>
+    <button id="start" class="primary" data-i18n="start">Empezar</button>
+    <p class="starterr" id="startErr" role="alert" hidden></p>
+<p class="dlnote" id="dlNote" hidden></p>
+    <p class="fine" id="fine" data-i18n="fine">La primera vez descarga el modelo de voz (una vez, luego en caché y offline). Nada de audio sale de tu equipo; solo la ficha va al destino que elijas.</p>
+    <button id="clearCache" class="clearcache" type="button" hidden></button>
+  </div>
+</main>
+
+<!-- LIVE -->
+<main id="live" class="screen" hidden>
+  <div class="livetop">
+    <span class="name" id="skName" tabindex="-1">—</span>
+    <span class="mode" id="modeChip" data-i18n-title="modeTitle" data-i18n="modeMic" title="Qué está oyendo el copiloto">🎙️ micro</span>
+    <span class="recchip" id="recChip" hidden></span>
+    <span class="recchip iachip" id="iaChip" tabindex="-1" hidden></span>
+    <button type="button" class="iaretry" id="iaRetry" data-i18n="iaRetry" data-i18n-aria="iaRetryAria" aria-label="Reintentar la IA avanzada" hidden>Reintentar</button>
+    <div class="sp">
+      <button id="recDl" class="exp" data-i18n="recDl" data-i18n-title="recTitle" title="Descargar otra vez la grabación" hidden>⬇ Grabación</button>
+      <button id="exp" class="exp" data-i18n-title="expTitle" title="Descargar la ficha en CSV">⬇ CSV</button>
+      <button id="send" class="exp" data-i18n-title="sendTitle" data-i18n="send" title="Enviar la ficha al destino configurado">📤 Enviar</button>
+      <button id="stop" class="stop" data-i18n="stop">Parar</button>
+      <button id="newCall" class="exp" data-i18n="newCall" data-i18n-title="newCallTitle" title="Empezar otra llamada (la ficha de esta se borra de la pantalla)" hidden>↺ Nueva llamada</button>
+    </div>
+    <div class="dlbar" id="dlBar" hidden><span id="dlMsg" data-i18n="dlMsg">Descargando el modelo de voz…</span><span class="bar" id="dlProgress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="dlMsg"><i id="dlFill"></i></span><span class="pct" id="dlPct" aria-hidden="true"></span></div>
+    <div class="sendres" id="sendRes" role="status" aria-live="polite" hidden></div>
+    <p class="dlnote" id="cacheNote" role="status" hidden></p>
+    <p class="sr" id="srNote" role="status"></p>
+  </div>
+  <div class="destlive" id="destLive" hidden></div>
+  <div class="livewrap">
+    <aside class="col-board board" id="board"></aside>
+    <div class="col-conv">
+      <canvas class="wave" id="wave" width="640" height="46"></canvas>
+      <div class="status" id="status" role="status" aria-live="polite" data-i18n="listening">Escuchando…</div>
+      <div class="transcript" id="log"><div class="empty" id="emptyMsg" data-i18n="empty">Habla y aparecerá aquí. La ficha se rellena sola.</div></div>
+    </div>
+  </div>
+</main>
+
+<footer><span data-i18n="foot">Elffuss Copiloto · local, offline, sin cuenta. El audio se queda en tu equipo; solo la ficha va a tu destino. · Parte de</span> <a href="https://elffuss.com" target="_blank" rel="noopener">Elffuss</a> · <a href="https://copilot.elffuss.com/blog/" target="_blank" rel="noopener">Blog</a> · <a href="https://translator.elffuss.com/" target="_blank" rel="noopener" data-i18n="navTr">Traductor</a>
+<small class="attrib"><span data-i18n="attrib1">Modelos de terceros, descargados por tu navegador desde Hugging Face:</span>
+<a href="https://huggingface.co/openai/whisper-base" target="_blank" rel="noopener">Whisper</a> (OpenAI, Apache-2.0; ONNX: <a href="https://huggingface.co/onnx-community/whisper-base" target="_blank" rel="noopener">onnx-community/whisper-base</a>) ·
+<a href="https://huggingface.co/pyannote/segmentation-3.0" target="_blank" rel="noopener">pyannote/segmentation-3.0</a> (Hervé Bredin, MIT; ONNX: <a href="https://huggingface.co/onnx-community/pyannote-segmentation-3.0" target="_blank" rel="noopener">onnx-community/pyannote-segmentation-3.0</a>) ·
+<a href="https://huggingface.co/pyannote/wespeaker-voxceleb-resnet34-LM" target="_blank" rel="noopener">wespeaker-voxceleb-resnet34-LM</a> (WeSpeaker · pyannote, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>; ONNX: <a href="https://huggingface.co/onnx-community/wespeaker-voxceleb-resnet34-LM" target="_blank" rel="noopener">onnx-community/wespeaker-voxceleb-resnet34-LM</a>) ·
+<span data-i18n="attrib3">IA avanzada (opcional):</span> <a href="https://huggingface.co/litert-community/gemma-4-E4B-it-litert-lm" target="_blank" rel="noopener">Gemma 4 E4B</a> / <a href="https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm" target="_blank" rel="noopener">E2B</a> (Google, LiteRT).
+<span data-i18n="attrib2">Pesos convertidos a ONNX por onnx-community; sin cambios en los modelos por nuestra parte.</span></small></footer>
+
+<script type="module">
+import { loadDiarizer, speakerVec, makeSpeakerBook } from './diarize.mjs';
+import * as MC from './model-cache.mjs';
+MC.registrarSW();
+import * as IA from './copilot-llm.mjs';
+import { fallbackAdvice } from './copilot-grammar.mjs';
+const $ = id => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+// Lo mismo puede venir tras la «#» (el enlace para el equipo lo pone ahí: esa parte no llega a
+// ningún servidor, y los webhooks suelen ser secretos). Si está en los dos sitios, manda la «#».
+const hashParams = new URLSearchParams(location.hash.slice(1));
+const param = k => hashParams.get(k) ?? params.get(k);
+
+// ── idioma de la interfaz: español o inglés ────────────────────────────────────
+// ?ui=es|en, lo último que se eligió con el botón de arriba, o el idioma del
+// navegador. Independiente del idioma de la CONVERSACIÓN (el selector de abajo),
+// que es lo que se le dice a Whisper.
+const I18N = {
+es: {
+  title:'Elffuss Copiloto · notas de reunión zero-trust, en tu navegador',
+  metaDesc:'Notas de llamada zero-trust: el audio no sale de tu equipo, no hay cuenta, no hay servidor y no se guardan huellas de voz. Rellena la ficha del cliente sola y la manda a tu CRM, webhook o Google Forms.',
+  uiOther:'English',
+  h1:'Elffuss Copiloto', hsub:'local · offline · en tu navegador', h2:'<b>Elffuss</b> Copiloto',
+  lead:'Escucha tu llamada, <b>rellena la ficha del cliente sola</b> y la manda a donde tú digas. Todo en tu navegador — el audio no sale de tu equipo. 😉',
+  b1:'sin registro', b2:'todo en tu navegador', b3:'se graba solo si tú quieres', b4:'tu voz no se guarda',
+  lblLang:'Idioma de la conversación', lblMic:'Micrófono', micDefault:'Por defecto', micN:'Micrófono {n}',
+  callAudio:'🖥️ Capturar también el <b>audio de la llamada</b> (videollamada): compartes una pestaña o ventana con audio y oigo a los dos.',
+  capPrefix:'🎙️ <b>Modo solo micrófono.</b> ',
+  capMobile:'En el móvil <b>ningún navegador</b> deja capturar el audio de la llamada. Te oigo a ti y, si pones el <b>manos libres</b>, también al cliente por el altavoz.',
+  capDesktop:'Firefox y Safari comparten pantalla <b>sin pista de audio</b>: solo <b>Chrome o Edge de escritorio</b> pueden capturar el audio de la videollamada. Ábrelo ahí para oír a los dos — o sigue aquí con el micro (con el altavoz puesto también capta al cliente).',
+  ztSum:'🛡️ Tu llamada se queda en tu equipo · ver qué sale exactamente',
+  zt1:'<b class="no">Tu voz no sale de aquí.</b> La transcripción se hace en tu propio navegador: no hay ningún servidor escuchando.',
+  zt2:'<b class="no">Sin registros.</b> No necesitas cuenta ni contraseña: abres y empiezas.',
+  zt3:'<b class="no">Solo se graba si tú lo pides.</b> Si no marcas «Grabar», el audio se usa al momento y se descarta. Si lo marcas, se guarda comprimido en tu equipo, nunca en un servidor. La transcripción vive en esta pestaña y desaparece al cerrarla.',
+  zt4:'<b class="no">Sabe quién habla, pero no quién eres.</b> Compara las voces solo durante la llamada y lo olvida al terminar: no guarda ni envía huellas de voz.',
+  zt5:'<b class="si">La primera vez</b> se descargan los modelos de IA desde Hugging Face y jsDelivr, como cualquier otra descarga: no se envía nada tuyo. Después se quedan guardados y transcribe incluso sin internet.',
+  zt6:'<b class="si">La ficha sale solo cuando pulsas «Enviar»</b>: sus campos, nunca el audio ni la transcripción, y al destino que <b>tú</b> elijas.',
+  zt7:'En tu equipo solo se guardan tu idioma, los modelos descargados y, si la activas, la grabación que descargues.',
+  zt8:'<b>Un buen gesto:</b> cuéntale a la otra persona que estás tomando notas. Y si grabas, avísale siempre: en muchos sitios es obligatorio pedir permiso.',
+  destSum:'📤 Destino de los datos (opcional)', lblForm:'Google Forms (pega el enlace «prerrellenado»)',
+  phWebhook:'https://tu-crm.com/api/leads', phForm:'https://docs.google.com/forms/d/e/…/viewform?entry.123=nombre&entry.456=telefono',
+  mini:'En el «prerrellenado» pon el <b>nombre del campo</b> como valor (nombre, telefono, email…) y lo mapeo solo.',
+  teamLink:'🔗 Copiar enlace para el equipo', teamLinkDone:'✓ Copiado. El destino va tras la «#» del enlace, que el navegador no manda a ningún servidor.', teamLinkPrompt:'Copia este enlace (el destino va tras la «#»: no llega a ningún servidor):',
+  fromLink:'· configurado desde un enlace',
+  gformMap:'Se rellenarán: {list}.', gformSkip:'No se rellenan con esta skill: {list}.', gformNoneSkill:'Ningún campo de este enlace lo rellena la skill elegida.', gformNone:'Este enlace no tiene campos que sepa rellenar: en el «prerrellenado» escribe el nombre del campo (nombre, telefono, email…) como valor.', gformBad:'No parece un enlace de Google Forms.',
+  navTr:'Traductor', skGroup:'Qué quieres que haga', uiAria:'Switch the interface to English', uiLang:'en',
+  start:'Empezar',
+  fine:'La primera vez descarga el modelo de voz (una vez, luego en caché y offline). Nada de audio sale de tu equipo; solo la ficha va al destino que elijas.',
+  clearBtn:'🗑️ Borrar los modelos descargados ({size})',
+  clearConfirm:'Vas a borrar {size} de modelos guardados en este navegador.\n\nNo se pierde nada tuyo: solo los modelos. Se borran también para las demás webs de Elffuss (Traductor, Claw…), que comparten el mismo almacén. La próxima vez se volverán a descargar.\n\n¿Seguir?',
+  cacheNote:'Este navegador no ha guardado todo el modelo de voz (falta espacio o no lo permite): la próxima vez se volverá a descargar.',
+  dlNoSpace:'Puede que no quepa: este navegador deja unos {libre} libres para los modelos y hacen falta {falta}. Libera espacio en el equipo o no se podrá guardar.',
+  clearing:'🗑️ Borrando…', cleared:'✓ Modelos borrados',
+  dlMsg:'Descargando el modelo de voz…', dlListening:'Descargando el modelo de voz: lo que digas ahora (hasta 5 minutos) se transcribe al terminar.',
+  dlQueueFull:'Descargando el modelo de voz: ya hay 5 minutos de voz esperando y no cabe más. Frases que no se transcribirán: {n}.',
+  dlNote:'La primera vez descarga {que}. Mejor con Wi-Fi; después queda guardado.', dlNoteVoz:'{mb} del modelo de voz', dlNoteIA:'{mb} de la IA avanzada', dlNoteCached:'Modelos ya descargados: arranca sin esperar y funciona sin conexión.',
+  dlNoteVozCached:'El modelo de voz ya está descargado: arranca sin esperar.', dlNoteIABaja:'La IA avanzada aún se está descargando.',
+  modeTitle:'Qué está oyendo el copiloto', modeMic:'🎙️ micro', modeBoth:'🎙️+🖥️ micro + llamada', modeMicOnly:'🎙️ solo micro',
+  expTitle:'Descargar la ficha en CSV', sendTitle:'Enviar la ficha al destino configurado', send:'📤 Enviar', stop:'Parar',
+  listening:'Escuchando…', listeningFill:'Escuchando… (la ficha se rellena sola)', transcribing:'Transcribiendo…', stopped:'Parado. Descarga o envía la ficha, o empieza otra llamada.',
+  newCall:'↺ Nueva llamada', newCallTitle:'Empezar otra llamada: la ficha de esta se borra de la pantalla',
+  newCallConfirm:'¿Empezar otra llamada? La ficha de esta no se ha enviado ni descargado y se borrará de la pantalla.',
+  empty:'Habla y aparecerá aquí. La ficha se rellena sola.',
+  who_S1:'Tú', who_S2:'Cliente',
+  foot:'Elffuss Copiloto · local, offline, sin cuenta. El audio se queda en tu equipo; solo la ficha va a tu destino. · Parte de',
+  attrib1:'Modelos de terceros, descargados por tu navegador desde Hugging Face:',
+  attrib2:'Pesos convertidos a ONNX por onnx-community; sin cambios en los modelos por nuestra parte.', attrib3:'IA avanzada (opcional):',
+  sk_ficha:'Ficha de cliente', sk_ficha_d:'Rellena la ficha sola. Export a CRM/Forms.',
+  sk_ventas:'Objetivos de venta', sk_ventas_d:'Marca nombre, interés, teléfono y compra.',
+  sk_facilitador:'Reunión', sk_facilitador_d:'Nombre, teléfono y email de quien habla.',
+  f_nombre:'Nombre', f_empresa:'Empresa', f_cargo:'Cargo', f_telefono:'Teléfono', f_email:'Email', f_necesidad:'Necesidad', f_presupuesto:'Presupuesto', f_plazo:'Plazo', f_siguiente:'Siguiente paso',
+  goal_nombre:'El cliente da su nombre', goal_interes:'Muestra interés', goal_telefono:'Da su teléfono', goal_compra:'Quiere comprar',
+  missing:'Aún falta por captar: <b>{list}</b>. Pregúntalo antes de cerrar.', complete:'¡Ficha completa! Ya puedes enviarla.',
+  goals:'Objetivos', captured:'Datos captados', whatsMissing:'Qué falta', setDest:' (configura destino)',
+  yes:'sí', no:'no', csvField:'Campo', csvValue:'Valor', csvFile:'ficha', csvDefault:'cliente',
+  needDest:'Falta el destino: pon un webhook o un Google Forms aquí debajo y pulsa Enviar otra vez.', sending:'Enviando…',
+  sentTo:'Enviado a {to} ✓', sentNoConfirm:'Enviado a {to}, sin confirmación del servidor (no deja leer su respuesta).',
+  webhookStatus:'El webhook ({host}) respondió {status}: no se guardó.', webhookFail:'No se pudo enviar al webhook ({host}): {err}', webhookTimeout:'El webhook ({host}) no respondió: no se sabe si se guardó. Pulsa Enviar para reintentarlo.',
+  formsNothing:'El enlace de Google Forms no tiene campos que sepa rellenar: no se envió.', formsNoneSkill:'Ningún campo del enlace de Google Forms es de esta skill: no se envió.', formsTimeout:'Google Forms no respondió: puede que no se enviara.', formsEmpty:'La ficha aún no tiene nada para Google Forms: no se envió.', formsFail:'No se pudo enviar a Google Forms: ',
+  noAudio:'Esa fuente no compartió audio: marca «Compartir audio de la pestaña». Sigo con el micro.',
+  shareEnded:'Dejaste de compartir el audio. Sigo con el micro.', shareFailed:'No se compartió el audio ({err}). Sigo con el micro.', cancelled:'cancelado',
+  allowMic:'Sin permiso para el micrófono: actívalo en el candado de la barra de direcciones y pulsa Empezar otra vez.', micHelp:'Cómo hacerlo', cantStart:'No se pudo empezar: ',
+  micNotFound:'No encuentro ningún micrófono: conecta uno y pulsa Empezar otra vez.', micGone:'No encuentro el micrófono elegido (¿desconectado?): elige otro arriba y pulsa Empezar.', micBusy:'El micrófono no se puede abrir: puede que lo esté usando otra aplicación. Ciérrala y pulsa Empezar otra vez.',
+  modelsFail:'No se pudo cargar el modelo de voz: {err}. Para y vuelve a empezar para reintentarlo.',
+  recOpt:'🔴 Grabar la conversación: se guarda en tu equipo como audio comprimido (unos 11 MB por hora).',
+  recOff:'🔴 Este navegador no permite grabar el audio.',
+  recLive:'grabando {time} · {size}', recReady:'grabación guardada · {size}', recStarted:'Grabando la llamada.',
+  recDl:'⬇ Grabación', recTitle:'Descargar otra vez la grabación', recFile:'llamada',
+  iaChecking:'🧠 IA avanzada: comprobando este dispositivo…',
+  iaOpt:'🧠 IA avanzada ({modelo}): además de las reglas, entiende qué necesita el cliente y el siguiente paso, y te da consejos. La primera vez descarga {peso}; luego queda guardado.',
+  iaOptMobile:'🧠 IA avanzada ({modelo}, en pruebas en móvil): entiende la necesidad y el siguiente paso. Descarga {peso} y puede quedarse sin memoria.',
+  iaNone:'🧠 IA avanzada no disponible en este dispositivo (necesita WebGPU): el Copiloto funciona con reglas.',
+  iaDownloading:'IA: descargando {pct}', iaPreparing:'IA: preparando…', iaReady:'IA: {modelo}', iaError:'IA no disponible · sigue con reglas', tip:'Consejo',
+  iaRetry:'Reintentar', iaErrorWhy:'No se pudo cargar la IA ({err}). Pulsa Reintentar, o sigue: las reglas siguen rellenando la ficha.',
+  iaRetryAria:'Reintentar la IA avanzada', iaDlLine:'🧠 IA avanzada: descargando {pct}', iaCancel:'Cancelar la descarga', iaCancelled:'Descarga de la IA avanzada cancelada.',
+},
+en: {
+  title:'Elffuss Copilot · zero-trust meeting notes, in your browser',
+  metaDesc:'Zero-trust call notes: the audio never leaves your device, no account, no server and no voiceprints stored. It fills in the customer record by itself and sends it to your CRM, webhook or Google Forms.',
+  uiOther:'Español',
+  h1:'Elffuss Copilot', hsub:'local · offline · in your browser', h2:'<b>Elffuss</b> Copilot',
+  lead:'It listens to your call, <b>fills in the customer record by itself</b> and sends it wherever you want. All in your browser — the audio never leaves your device. 😉',
+  b1:'no sign-up', b2:'all in your browser', b3:'records only if you choose', b4:'your voice isn’t stored',
+  lblLang:'Conversation language', lblMic:'Microphone', micDefault:'Default', micN:'Microphone {n}',
+  callAudio:'🖥️ Also capture the <b>call audio</b> (video call): share a tab or window with audio and I’ll hear you both.',
+  capPrefix:'🎙️ <b>Microphone-only mode.</b> ',
+  capMobile:'On mobile, <b>no browser</b> lets you capture call audio. I’ll hear you and, if you turn on the <b>speakerphone</b>, the customer too.',
+  capDesktop:'Firefox and Safari share your screen <b>without an audio track</b>: only <b>desktop Chrome or Edge</b> can capture video-call audio. Open it there to hear you both — or carry on here with the mic (with the speaker on, it picks up the customer too).',
+  ztSum:'🛡️ Your call stays on your device · see exactly what leaves it',
+  zt1:'<b class="no">Your voice stays here.</b> Transcription happens in your own browser: there’s no server listening.',
+  zt2:'<b class="no">No sign-up.</b> No account, no password: just open it and start.',
+  zt3:'<b class="no">It only records if you ask it to.</b> If you don’t tick “Record”, audio is used on the spot and thrown away. If you do, it’s saved compressed on your device, never on a server. The transcript lives in this tab and disappears when you close it.',
+  zt4:'<b class="no">It knows who’s speaking, not who you are.</b> It compares voices only during the call and forgets them afterwards: no voiceprints are stored or sent.',
+  zt5:'<b class="si">The first time</b>, the AI models download from Hugging Face and jsDelivr, like any other download: nothing of yours is sent. After that they’re kept, and it transcribes even offline.',
+  zt6:'<b class="si">The record only leaves when you press “Send”</b>: just its fields, never the audio or the transcript, and only to the destination <b>you</b> choose.',
+  zt7:'Your device only keeps your language, the downloaded models and, if you turn it on, the recording you download.',
+  zt8:'<b>A nice touch:</b> let the other person know you’re taking notes. And if you record, always tell them: in many places you’re required to ask for permission.',
+  destSum:'📤 Where the data goes (optional)', lblForm:'Google Forms (paste the “pre-filled” link)',
+  phWebhook:'https://your-crm.com/api/leads', phForm:'https://docs.google.com/forms/d/e/…/viewform?entry.123=name&entry.456=phone',
+  mini:'In the “pre-filled” link, put the <b>field name</b> as the value (name, phone, email…) and I’ll map it for you.',
+  teamLink:'🔗 Copy link for your team', teamLinkDone:'✓ Copied. The destination goes after the “#” in the link, which the browser never sends to any server.', teamLinkPrompt:'Copy this link (the destination goes after the “#”: it never reaches any server):',
+  fromLink:'· set up from a link',
+  gformMap:'Will fill in: {list}.', gformSkip:'Not filled in by this skill: {list}.', gformNoneSkill:'None of this link’s fields are filled in by the chosen skill.', gformNone:'This link has no fields I can fill in: in the “pre-filled” link, write the field name (name, phone, email…) as the value.', gformBad:'That doesn’t look like a Google Forms link.',
+  navTr:'Translator', skGroup:'What you want it to do', uiAria:'Cambiar la interfaz a español', uiLang:'es',
+  start:'Start',
+  fine:'The first time, it downloads the voice model (just once; after that it’s cached and works offline). No audio leaves your device; only the record goes to the destination you choose.',
+  clearBtn:'🗑️ Delete downloaded models ({size})',
+  clearConfirm:'This will delete {size} of models stored in this browser.\n\nNothing of yours is lost: only the models. They are also deleted for the other Elffuss sites (Translator, Claw…), which share the same store. They’ll download again next time.\n\nContinue?',
+  cacheNote:'This browser didn’t keep the whole voice model (not enough space, or it isn’t allowed): it will download again next time.',
+  dlNoSpace:'It may not fit: this browser leaves about {libre} free for models and {falta} are needed. Free up space on your device or it can’t be kept.',
+  clearing:'🗑️ Deleting…', cleared:'✓ Models deleted',
+  dlMsg:'Downloading the voice model…', dlListening:'Downloading the voice model: what you say now (up to 5 minutes) is transcribed when it finishes.',
+  dlQueueFull:'Downloading the voice model: 5 minutes of speech are already waiting and no more fits. Utterances that won’t be transcribed: {n}.',
+  dlNote:'The first time it downloads {que}. Wi-Fi recommended; it’s kept afterwards.', dlNoteVoz:'{mb} for the voice model', dlNoteIA:'{mb} for the advanced AI', dlNoteCached:'Models already downloaded: starts right away and works offline.',
+  dlNoteVozCached:'The voice model is already downloaded: it starts right away.', dlNoteIABaja:'The advanced AI is still downloading.',
+  modeTitle:'What the copilot is hearing', modeMic:'🎙️ mic', modeBoth:'🎙️+🖥️ mic + call', modeMicOnly:'🎙️ mic only',
+  expTitle:'Download the record as CSV', sendTitle:'Send the record to the configured destination', send:'📤 Send', stop:'Stop',
+  listening:'Listening…', listeningFill:'Listening… (the record fills itself in)', transcribing:'Transcribing…', stopped:'Stopped. Download or send the record, or start another call.',
+  newCall:'↺ New call', newCallTitle:'Start another call: this record is cleared from the screen',
+  newCallConfirm:'Start another call? This record hasn’t been sent or downloaded and will be cleared from the screen.',
+  empty:'Start talking and it’ll show up here. The record fills itself in.',
+  who_S1:'You', who_S2:'Customer',
+  foot:'Elffuss Copilot · local, offline, no account. The audio stays on your device; only the record goes to your destination. · Part of',
+  attrib1:'Third-party models, downloaded by your browser from Hugging Face:',
+  attrib2:'Weights converted to ONNX by onnx-community; no changes to the models on our side.', attrib3:'Advanced AI (optional):',
+  sk_ficha:'Customer record', sk_ficha_d:'Fills in the record by itself. Export to CRM/Forms.',
+  sk_ventas:'Sales goals', sk_ventas_d:'Ticks off name, interest, phone and purchase.',
+  sk_facilitador:'Meeting', sk_facilitador_d:'Name, phone and email of whoever is speaking.',
+  f_nombre:'Name', f_empresa:'Company', f_cargo:'Role', f_telefono:'Phone', f_email:'Email', f_necesidad:'Need', f_presupuesto:'Budget', f_plazo:'Timeline', f_siguiente:'Next step',
+  goal_nombre:'Customer gives their name', goal_interes:'Shows interest', goal_telefono:'Gives their phone number', goal_compra:'Wants to buy',
+  missing:'Still to capture: <b>{list}</b>. Ask before you wrap up.', complete:'Record complete! You can send it now.',
+  goals:'Goals', captured:'Captured', whatsMissing:'What’s missing', setDest:' (set a destination)',
+  yes:'yes', no:'no', csvField:'Field', csvValue:'Value', csvFile:'record', csvDefault:'customer',
+  needDest:'No destination yet: add a webhook or a Google Form below and press Send again.', sending:'Sending…',
+  sentTo:'Sent to {to} ✓', sentNoConfirm:'Sent to {to}, without confirmation from the server (it doesn’t let the browser read its answer).',
+  webhookStatus:'The webhook ({host}) answered {status}: it wasn’t saved.', webhookFail:'Couldn’t send to the webhook ({host}): {err}', webhookTimeout:'The webhook ({host}) didn’t answer: it may not have been saved. Press Send to try again.',
+  formsNothing:'The Google Forms link has no fields I can fill in: nothing was sent.', formsNoneSkill:'None of the Google Forms link’s fields belong to this skill: nothing was sent.', formsTimeout:'Google Forms didn’t answer: it may not have been sent.', formsEmpty:'The record has nothing for Google Forms yet: nothing was sent.', formsFail:'Couldn’t send to Google Forms: ',
+  noAudio:'That source didn’t share audio: tick “Share tab audio”. Carrying on with the mic.',
+  shareEnded:'You stopped sharing audio. Carrying on with the mic.', shareFailed:'Audio wasn’t shared ({err}). Carrying on with the mic.', cancelled:'cancelled',
+  allowMic:'No microphone permission: allow it from the padlock in the address bar and press Start again.', micHelp:'How', cantStart:'Couldn’t start: ',
+  micNotFound:'I can’t find a microphone: plug one in and press Start again.', micGone:'I can’t find the chosen microphone (unplugged?): pick another one above and press Start.', micBusy:'The microphone can’t be opened: another app may be using it. Close it and press Start again.',
+  modelsFail:'The voice model couldn’t load: {err}. Stop and start again to retry.',
+  recOpt:'🔴 Record the conversation: it’s saved on your device as compressed audio (about 11 MB per hour).',
+  recOff:'🔴 This browser can’t record audio.',
+  recLive:'recording {time} · {size}', recReady:'recording saved · {size}', recStarted:'Recording the call.',
+  recDl:'⬇ Recording', recTitle:'Download the recording again', recFile:'call',
+  iaChecking:'🧠 Advanced AI: checking this device…',
+  iaOpt:'🧠 Advanced AI ({modelo}): on top of the rules, it understands what the customer needs and the next step, and gives you tips. The first time it downloads {peso}; after that it’s kept.',
+  iaOptMobile:'🧠 Advanced AI ({modelo}, experimental on mobile): understands the need and the next step. Downloads {peso} and may run out of memory.',
+  iaNone:'🧠 Advanced AI isn’t available on this device (it needs WebGPU): the Copilot works with rules.',
+  iaDownloading:'AI: downloading {pct}', iaPreparing:'AI: getting ready…', iaReady:'AI: {modelo}', iaError:'AI unavailable · using rules', tip:'Tip',
+  iaRetry:'Retry', iaErrorWhy:'The AI couldn’t load ({err}). Press Retry, or carry on: the rules keep filling in the record.',
+  iaRetryAria:'Retry the advanced AI', iaDlLine:'🧠 Advanced AI: downloading {pct}', iaCancel:'Cancel download', iaCancelled:'Advanced AI download cancelled.',
+},
+};
+let UI = param('ui') || (() => { try { return localStorage.getItem('elffuss_cop_ui'); } catch { return null; } })()
+  || ((navigator.language || '').toLowerCase().startsWith('es') ? 'es' : 'en');
+if (!I18N[UI]) UI = 'en';
+function t(k, v = {}) { const s = I18N[UI][k] ?? I18N.es[k] ?? k; return String(s).replace(/\{(\w+)\}/g, (_, n) => v[n] ?? ''); }
+function applyStatic() {
+  document.documentElement.lang = UI; document.title = t('title');
+  document.querySelector('meta[name="description"]')?.setAttribute('content', t('metaDesc'));
+  for (const el of document.querySelectorAll('[data-i18n]')) el.innerHTML = t(el.dataset.i18n);
+  for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
+  for (const el of document.querySelectorAll('[data-i18n-ph]')) el.placeholder = t(el.dataset.i18nPh);
+  for (const el of document.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  const ui = $('uiToggle'); ui.textContent = t('uiOther'); ui.lang = t('uiLang'); ui.setAttribute('aria-label', t('uiAria'));
+}
+applyStatic();
+
+// ── skills (ficha de cliente es la estrella; extracción determinista fiable) ──
+// Las CLAVES de los campos (nombre, telefono…) son el contrato con el webhook y con
+// los formularios ya montados: no se traducen. Nombres y etiquetas salen de I18N.
+const SKILLS = {
+  ficha: { id:'ficha', icon:'📇', slots:['nombre','empresa','cargo','telefono','email','necesidad','presupuesto','plazo','siguiente'] },
+  ventas: { id:'ventas', icon:'🎯', goals:true, slots:['nombre','interes','telefono','compra'] },
+  facilitador: { id:'facilitador', icon:'🧑‍🏫', slots:['nombre','telefono','email'] },
+};
+const skName = s => t('sk_' + s.id), skDesc = s => t('sk_' + s.id + '_d');
+const slotsOf = s => s.slots.map(k => [k, t((s.goals ? 'goal_' : 'f_') + k)]);
+let skill = SKILLS[param('skill')] || SKILLS.ficha;
+let data = {};
+
+// ── idiomas ──
+const LANGS = [['es','Español'],['en','English'],['fr','Français'],['de','Deutsch'],['it','Italiano'],['pt','Português'],['ca','Català'],['nl','Nederlands']];
+$('lang').innerHTML = LANGS.map(([c,n])=>`<option value="${c}">${n}</option>`).join('');
+const isLang = c => LANGS.some(l => l[0] === c);
+$('lang').value = isLang(param('lang')) ? param('lang') : (() => { try { return localStorage.getItem('elffuss_cop_lang'); } catch { return null; } })() || (UI === 'en' ? 'en' : 'es');
+$('lang').onchange = () => { try{ localStorage.setItem('elffuss_cop_lang', $('lang').value); }catch{} syncUrl(); };
+
+// La URL dice lo que hay en pantalla (?ui=&skill=&lang=) para poder compartir la vista tal cual
+// (antes solo se leía al cargar). El destino NUNCA se queda en la barra de direcciones: los
+// webhooks suelen ser secretos; para repartirlos está «Copiar enlace para el equipo».
+function syncUrl() {
+  try {
+    const u = new URL(location.href);
+    u.searchParams.set('ui', UI); u.searchParams.set('skill', skill.id); u.searchParams.set('lang', $('lang').value);
+    u.searchParams.delete('webhook'); u.searchParams.delete('form'); u.hash = '';
+    history.replaceState(history.state, '', u);
+  } catch {}
+}
+
+// ── destino desde el enlace (para repartir al equipo ya configurado) ──
+const linkWebhook = param('webhook'), linkForm = param('form');
+if (linkWebhook) $('webhook').value = linkWebhook;
+if (linkForm) $('gform').value = linkForm;
+if (linkWebhook || linkForm) { $('dest').open = true; $('fromLink').hidden = false; syncUrl(); }
+
+// ── selector de skill ──
+// Se pintan una vez y al elegir solo cambia el estado (antes se rehacían los tres botones y el
+// foco del teclado caía al <body>). aria-pressed dice cuál está elegida.
+function renderSkills() {
+  const g = $('skGrid'); g.replaceChildren();
+  for (const k in SKILLS) { const s = SKILLS[k];
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'skitem'; b.dataset.skill = s.id;
+    b.innerHTML = `<span class="ico" aria-hidden="true">${s.icon}</span><b></b><span class="d"></span>`;
+    b.querySelector('b').textContent = skName(s); b.querySelector('.d').textContent = skDesc(s);
+    b.onclick = () => { skill = s; paintSkills(); syncUrl(); paintFormMap(); };
+    g.appendChild(b);
+  }
+  paintSkills();
+}
+function paintSkills() {
+  for (const b of $('skGrid').children) { const on = b.dataset.skill === skill.id; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
+}
+renderSkills();
+
+// ── qué puede DE VERDAD este navegador ────────────────────────────────────────
+// Capturar el audio de la videollamada (getDisplayMedia con pista de audio) es
+// cosa de Chromium de ESCRITORIO: Firefox y Safari comparten pantalla SIN audio,
+// y en móvil no existe la vía. Por eso los rivales son apps nativas. Aquí se
+// dice ANTES de empezar, en vez de descubrirlo a mitad de la llamada.
+const CAP = (() => {
+  const ua = navigator.userAgent, uad = navigator.userAgentData;
+  const mobile = uad ? !!uad.mobile : /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  const brands = (uad?.brands || []).map(b => b.brand).join(' ');
+  const chromium = uad ? /Chromium|Chrome|Edge/i.test(brands)
+                       : (/Chrome|Chromium|Edg\//.test(ua) && !/Firefox|FxiOS|OPR\//.test(ua));
+  const display = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+  return { mobile, chromium, display, systemAudio: display && chromium && !mobile };
+})();
+function capReason() { return t(CAP.mobile ? 'capMobile' : 'capDesktop'); }
+function applyCap() {
+  const cb = $('callAudio'), lbl = $('callAudioLbl'), note = $('capnote');
+  if (CAP.systemAudio) return;
+  cb.checked = false; cb.disabled = true; lbl.classList.add('off');
+  note.hidden = false;
+  note.innerHTML = t('capPrefix') + capReason();
+}
+applyCap();
+// El chip dice lo que el copiloto está oyendo AHORA, no lo que se pidió.
+function setMode(both) {
+  const c = $('modeChip'); if (!c) return;
+  c.textContent = both ? t('modeBoth') : t('modeMicOnly');
+  c.className = 'mode' + (both ? ' both' : '');
+}
+
+// ── extracción DETERMINISTA (la misma lógica que Elffuss Claw) ──
+const _NUM = {cero:0,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9};
+function _spelledDigits(t){ const ws=t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').split(/[^a-z0-9]+/); let run=[],best='';
+  for(const w of ws){ if(w in _NUM)run.push(_NUM[w]); else if(/^\d+$/.test(w)){for(const d of w)run.push(+d);} else{ if(run.length>best.length)best=run.join(''); run=[]; } }
+  if(run.length>best.length)best=run.join(''); return best; }
+// El MÁS LARGO de todos: la transcripción suele traer primero un trozo («555-0192») y luego el número entero.
+function _phone(t){ const c=[...t.replace(/[\s.\-()]/g,'').matchAll(/\+?\d{7,15}/g)].map(m=>m[0]); const sp=_spelledDigits(t); if(sp.length>=7)c.push(sp);
+  return c.sort((a,b)=>b.replace('+','').length-a.replace('+','').length)[0]||null; }
+const _EMAIL=/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i;
+// Un email dictado llega escrito como se dice: «sarah at northwind dot com», «laura
+// arroba norte punto es». El punto de verdad solo cuenta si va pegado a lo siguiente,
+// para no tragarse el final de la frase.
+const _EMAIL_DICHO=/\b([a-z0-9][a-z0-9._\-]*)\s+(?:at|arroba)\s+([a-z0-9][a-z0-9\-]*(?:(?:\.(?=[a-z0-9])|\s+(?:dot|punto)\s+)[a-z0-9\-]+)+)/i;
+function _email(t){ const m=t.match(_EMAIL); if(m)return m[0];
+  const d=t.match(_EMAIL_DICHO); if(!d)return null;
+  const e=(d[1]+'@'+d[2].replace(/\s+(?:dot|punto)\s+/gi,'.')).toLowerCase(); return _EMAIL.test(e)?e:null; }
+// Whisper anota lo que no es voz entre paréntesis o corchetes: «(upbeat music)»,
+// «[Music]», «(speaking in foreign language)». Eso no lo ha dicho nadie: fuera.
+function cleanText(s){ return String(s||'').replace(/\([^)]*\)|\[[^\]]*\]|[♪♫]+/g,' ').replace(/\s+/g,' ').trim(); }
+const _NAME=/\b(?:[Mm]e llamo|[Mm]i nombre es|[Ss]oy|[Ll]e habla|[Hh]abla|[Mm]y name is|[Tt]his is|I['’]m|I am)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ'’]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ'’]+){0,2})/;
+const _NAME_STOP=/^(de|del|la|el|un|una|responsable|comercial|gerente|director|jefe|the|a|an|from|head|manager|calling|interested|not|very|just|here|so|going|looking|really|glad|happy|sorry|fine|good|great|sure|ok|okay)\b/i;
+const _EMPRESA=/(?:,\s*de\s+|de la empresa\s+|[Tt]rabajo en\s+|[Tt]rabajamos en\s+|[Mm]i empresa (?:es|se llama)\s+|[Nn]uestra empresa (?:es|se llama)\s+|empresa\s+|,\s*from\s+|from the company\s+|[Ii] work (?:at|for|in|with)\s+|[Ww]e work (?:at|for|in)\s+|[Mm]y company is\s+|[Oo]ur company is\s+|company (?:called|named)\s+|I['’]m with\s+)([A-ZÁÉÍÓÚÑ][\wáéíóúñ&'\-]+(?:[ ]+[A-ZÁÉÍÓÚÑ][\wáéíóúñ&'\-]+){0,2})/;
+const _CARGO=/\b(head\s+of\s+[a-z]+|director\s+of\s+[a-z]+|vp(?:\s+of\s+[a-z]+)?|vice\s+president(?:\s+of\s+[a-z]+)?|(?:sales|purchasing|procurement|project|product|office|operations|general)\s+manager|manager|co-?founder|founder|owner|buyer|coordinator|director[a]?(?:\s+de\s+[\wáéíóúñ]+){0,2}|gerente|responsable(?:\s+de\s+[\wáéíóúñ]+){0,2}|jefe[a]?(?:\s+de\s+[\wáéíóúñ]+){0,2}|ceo|cto|coo|encargad[oa](?:\s+de\s+[\wáéíóúñ]+){0,2}|coordinador[a]?|comprador[a]?|due[ñn][oa])\b/i;
+const _PRESU=/(\d[\d.,\s]*\s*(?:€|euros?|k\b|mil(?:\s+euros?)?|millones?(?:\s+de\s+euros?)?|dollars?|usd|pounds?|gbp|thousand(?:\s+(?:dollars?|euros?|pounds?))?|million(?:\s+(?:dollars?|euros?|pounds?))?)|(?:€|eur|\$|£|usd)\s?\d[\d.,]*(?:\s*(?:k\b|thousand|million))?)/i;
+const _PLAZO=/\b(este\s+(?:mes|trimestre|a[ñn]o|semana)|el\s+pr[oó]ximo\s+(?:mes|trimestre|a[ñn]o|semana)|en\s+\d+\s+(?:d[ií]as|semanas|meses)|para\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)|antes de\s+(?:fin de\s+)?[\wáéíóúñ]+|this\s+(?:month|quarter|year|week)|next\s+(?:month|quarter|year|week)|in\s+\d+\s+(?:days|weeks|months)|by\s+(?:january|february|march|april|may|june|july|august|september|october|november|december|the\s+end\s+of\s+(?:the\s+)?[a-z]+)|before\s+the\s+end\s+of\s+(?:the\s+)?[a-z]+)\b/i;
+const _INTERES=/\b(me interesa|nos interesa|interesad[oa]s?|me viene bien|suena bien|me gustar[ií]a|i['’]?m interested|we['’]?re interested|interested in|sounds (?:good|great)|i['’]?d like|we['’]?d like|that works for (?:me|us))\b/i;
+const _COMPRA=/\b(quiero contratar|queremos contratar|quiero comprar|lo contrato|me lo quedo|adelante|cerramos|firmamos|hacemos el pedido|i want to buy|we want to buy|we['’]?ll take it|let['’]?s do it|let['’]?s go ahead|go ahead|place the order|sign the contract|we have a deal|it['’]?s a deal)\b/i;
+// Primero lo que dice el CLIENTE (Hablante 2). Lo que falte en la ficha se busca en toda la
+// conversación: con un solo micro las dos voces se confunden a menudo (altavoz, o una prueba
+// en solitario) y un email atribuido a «Tú» se perdía entero. Si los dos lo dicen, gana el
+// cliente. Los OBJETIVOS siguen leyendo solo al cliente: un «adelante» del comercial no es compra.
+function clientText(){ return transcript.filter(l=>l.who==='S2').map(l=>l.text).join('\n'); }
+function allText(){ return transcript.map(l=>l.text).join('\n'); }
+function extractDeterministic(){
+  if(skill.goals) return extractFrom(clientText());
+  return { ...extractFrom(allText()), ...extractFrom(clientText()) };
+}
+function extractFrom(t){ const out = {};
+  const ph=_phone(t); if(ph) out.telefono=ph;
+  const em=_email(t); if(em) out.email=em;
+  const nm=(t.match(_NAME)||[])[1]; if(nm && !_NAME_STOP.test(nm)) out.nombre=nm.trim();
+  if(skill.goals){ // objetivos: booleanos
+    const g={}; if(out.telefono)g.telefono=true; if(out.nombre)g.nombre=true;
+    if(_INTERES.test(t))g.interes=true; if(_COMPRA.test(t))g.compra=true;
+    return g;
+  }
+  // campos adicionales de la ficha (best-effort, sin depender del LLM)
+  const emp=(t.match(_EMPRESA)||[])[1]; if(emp) out.empresa=emp.trim();
+  const car=(t.match(_CARGO)||[])[0]; if(car) out.cargo=car.trim();
+  const pre=(t.match(_PRESU)||[])[1]; if(pre) out.presupuesto=pre.trim().replace(/[.,;:]+$/,'');
+  const pla=(t.match(_PLAZO)||[])[1]; if(pla) out.plazo=pla.trim();
+  return out;
+}
+
+// ── board ──
+// El esqueleto (título, barra, CSV y Enviar) se hace una vez y luego solo se reescribe lo que cambia.
+// Antes se rehacía entero con cada frase y, con el foco del teclado en «Enviar», caía al <body>.
+function renderBoard(justKey) {
+  const b = $('board'); const slots = slotsOf(skill); let filled=0;
+  const clave = skill.id + ':' + UI;
+  if (b.dataset.skel !== clave || !b.querySelector('#send2')) {
+    b.dataset.skel = clave;
+    b.innerHTML = `<div class="btitle"></div><div class="bsub"><span class="bsubl"></span> <b></b></div><div class="barwrap"><i></i></div><div class="slots"></div><div class="advice"></div>
+    <div class="exprow"><button type="button" id="exp2">⬇ CSV</button><button type="button" id="send2"></button></div>`;
+    $('exp2').onclick = exportCSV; $('send2').onclick = sendData;
+  }
+  const rows = slots.map(([k,label])=>{ const v=data[k]; const has=skill.goals? v===true : !!(v&&String(v).trim()); if(has)filled++;
+    const val = skill.goals ? '' : `<div class="k">${label}</div><div class="v">${has?escapeHtml(String(v)):'—'}</div>`;
+    const lbl = skill.goals ? `<div class="lbl">${label}</div>` : '';
+    return `<div class="slot${has?' done':''}${k===justKey?' just':''}"><div class="dot">✓</div><div style="min-width:0">${skill.goals?lbl:val}</div></div>`;
+  }).join('');
+  const missing = slots.filter(([k])=> skill.goals? data[k]!==true : !(data[k]&&String(data[k]).trim())).map(([,l])=>l);
+  const advice = missing.length ? t('missing',{list:missing.slice(0,3).join(', ')}) : t('complete');
+  b.querySelector('.btitle').textContent = skill.icon + ' ' + skName(skill);
+  b.querySelector('.bsubl').textContent = skill.goals ? t('goals') : t('captured');
+  b.querySelector('.bsub b').textContent = filled + ' / ' + slots.length;
+  b.querySelector('.barwrap i').style.width = (slots.length ? filled / slots.length * 100 : 0) + '%';
+  b.querySelector('.slots').innerHTML = rows;
+  b.querySelector('.advice').innerHTML = `${iaConsejo?`<span class="k">${t('tip')}</span><span class="tip">${escapeHtml(iaConsejo)}</span>`:''}<span class="k">${t('whatsMissing')}</span><span id="advtext">${advice}</span>`;
+  const s2 = $('send2'); s2.textContent = t('send') + destLabel(); ocupadoBtn(s2, !!sending);
+}
+function destLabel(){ const w=$('webhook').value.trim(), f=$('gform').value.trim();
+  return (w||f) ? '' : t('setDest'); }
+function escapeHtml(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── export: CSV, webhook, Google Forms ──
+function ficha(){ const o={}; for(const [k,label] of slotsOf(skill)) o[label]= skill.goals?(data[k]===true?t('yes'):t('no')):(data[k]||''); return o; }
+// Lo último que se guardó (descargado en CSV o enviado): cerrar la pestaña con una ficha sin guardar
+// pide confirmación (ver beforeunload).
+let fichaGuardada='{}';
+const fichaSinGuardar=()=>Object.values(data).some(v=>v) && JSON.stringify(data)!==fichaGuardada;
+function exportCSV(){ fichaGuardada=JSON.stringify(data); const f=ficha(); const rows=[[t('csvField'),t('csvValue')],...Object.entries(f)];
+  const csv='﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=t('csvFile')+'-'+(data.nombre||t('csvDefault')).toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.csv'; a.click(); }
+// La ficha va al destino y se dice lo que pasó DE VERDAD, junto a la barra de arriba: antes un 500
+// salía como «✓» y el aviso vivía dentro de la ficha, donde lo borraba la siguiente frase. Del destino
+// solo se enseña el host: la URL de un webhook suele ser un secreto.
+// Cada envío lleva su número y tiempo límite: un webhook que no contestaba dejaba Enviar desactivado
+// para el resto de la sesión, también tras «Nueva llamada», sin decir por qué. Ahora a los 15 s se dice
+// que no respondió, y «Nueva llamada» suelta el candado (un envío viejo que acabe después no toca nada).
+const ENVIO_MS=15000;
+const limite=()=>(AbortSignal.timeout ? AbortSignal.timeout(ENVIO_MS) : undefined);
+const esTiempo=e=>e?.name==='TimeoutError'||e?.name==='AbortError';
+let sending=0, sendSeq=0;
+const hostOf = u => { try { return new URL(u).host; } catch { return '?'; } };
+function showSendRes(text, cls=''){ const r=$('sendRes'); r.textContent=text; r.className='sendres'+(cls?' '+cls:''); r.hidden=!text; }
+// Mientras se envía, los dos Enviar dicen que no están disponibles (aria-disabled) y sendData ignora
+// los clics, pero no se desactivan: con disabled, el foco del teclado caía al <body>.
+function ocupadoBtn(b, si){ if(si) b.setAttribute('aria-disabled','true'); else b.removeAttribute('aria-disabled'); }
+function paintSendBtns(){ for(const id of ['send','send2']){ const b=$(id); if(b) ocupadoBtn(b, !!sending); } }
+async function sendData(){
+  if(sending) return;
+  const webhook=$('webhook').value.trim(), form=$('gform').value.trim();
+  // Sin destino, el editor del destino se abre aquí mismo: antes había que recargar para llegar a él.
+  if(!webhook && !form){ showSendRes(t('needDest'),'warn'); openDestLive(); return; }
+  const mio=++sendSeq; sending=mio; paintSendBtns(); showSendRes(t('sending'));
+  const payload={ skill:skill.id, cuando:new Date().toISOString(), datos:data }, enviado=JSON.stringify(data);
+  const res=[];   // ok: true = confirmado, null = enviado sin poder confirmarlo, false = no
+  try {
+    if(webhook){ const host=hostOf(webhook);
+      try{ const r=await fetch(webhook,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:limite()});
+        res.push(r.ok?{ok:true,msg:t('sentTo',{to:host})}:{ok:false,msg:t('webhookStatus',{host,status:r.status})}); }
+      catch(e){
+        if(esTiempo(e)) res.push({ok:false,msg:t('webhookTimeout',{host})});
+        // Sin CORS el navegador no deja ni leer la respuesta: se manda «a ciegas» y se dice así.
+        else try{ await fetch(webhook,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),signal:limite()}); res.push({ok:null,msg:t('sentNoConfirm',{to:host})}); }
+        catch(e2){ res.push({ok:false,msg:esTiempo(e2)?t('webhookTimeout',{host}):t('webhookFail',{host,err:String(e2?.message||e?.message||e)})}); } } }
+    if(form){ const m=formMapping(form), body=formBody(m);
+      if(!m.ok) res.push({ok:false,msg:t('gformBad')});
+      else if(!m.pairs.length) res.push({ok:false,msg:t('formsNothing')});
+      else if(!enSkill(m).length) res.push({ok:false,msg:t('formsNoneSkill')});
+      else if(![...body.keys()].length) res.push({ok:false,msg:t('formsEmpty')});
+      else try{ await sendGoogleForm(m.action, body); res.push({ok:null,msg:t('sentNoConfirm',{to:'Google Forms'})}); }
+      catch(e){ res.push({ok:false,msg:esTiempo(e)?t('formsTimeout'):t('formsFail')+String(e?.message||e)}); } }
+  } finally { if(sending===mio){ sending=0; paintSendBtns(); } }
+  if(mio!==sendSeq) return;   // de una llamada anterior: no pisa la nueva
+  if(res.some(r=>r.ok!==false)) fichaGuardada=enviado;
+  showSendRes(res.map(r=>r.msg).join(' · '), res.some(r=>r.ok===false)?'err':res.some(r=>r.ok===null)?'warn':'');
+}
+// El destino durante la llamada: el mismo bloque del inicio, movido bajo la barra (y devuelto al
+// acabar). Lo que se escriba aquí es lo que usa Enviar.
+function openDestLive(){ const d=$('dest'); if(d.parentElement!==$('destLive')) $('destLive').appendChild(d); $('destLive').hidden=false; d.open=true; $('webhook').focus(); }
+function closeDestLive(){ const d=$('dest'); if(d.parentElement===$('destLive')) $('start').before(d); $('destLive').hidden=true; }
+for (const id of ['webhook','gform']) $(id).addEventListener('input', () => { if(!$('live').hidden && $('board').firstChild) renderBoard(null); });
+// Google Forms sin backend: del enlace prerrellenado sacamos entry.<id>=<campo>;
+// mapeamos <campo> a nuestros datos y POST a /formResponse (no-cors).
+// Nombres de campo en inglés del prerrellenado (name, phone…) → las claves de la ficha.
+const FORM_ALIAS={name:'nombre',phone:'telefono',telephone:'telefono',mobile:'telefono',company:'empresa',role:'cargo',title:'cargo',position:'cargo',need:'necesidad',needs:'necesidad',budget:'presupuesto',timeline:'plazo',deadline:'plazo',next:'siguiente','next step':'siguiente',nextstep:'siguiente',next_step:'siguiente',interest:'interes',purchase:'compra',buy:'compra'};
+const SLOT_KEYS=new Set(Object.values(SKILLS).flatMap(s=>s.slots));
+// Qué campo de la ficha corresponde a un valor del prerrellenado (o null). La vista previa del
+// destino y el envío usan la misma cuenta (enSkill), para que lo que se enseña sea lo que se manda:
+// antes la vista previa prometía campos de otras skills que esta nunca rellena.
+function formField(val){
+  const field=String(val).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+  if(!field) return null;
+  if(SLOT_KEYS.has(field)) return field;
+  if(FORM_ALIAS[field]) return FORM_ALIAS[field];
+  const hit=slotsOf(skill).find(([k,l])=>l.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(field));
+  return hit?hit[0]:null; }
+function formMapping(link){
+  let u; try{ u=new URL(link); }catch{ return {ok:false,pairs:[]}; }
+  if(!/(^|\.)google\.com$/.test(u.hostname) || !/\/forms\//.test(u.pathname)) return {ok:false,pairs:[]};
+  const pairs=[]; for(const [key,val] of u.searchParams){ if(!key.startsWith('entry.')) continue; const f=formField(val); if(f) pairs.push([key,f]); }
+  return {ok:true, pairs, action:u.origin+u.pathname.replace(/\/viewform.*/,'/formResponse')}; }
+const enSkill=m=>(m.pairs||[]).filter(([,f])=>skill.slots.includes(f));
+function formBody(m){ const body=new URLSearchParams();
+  for(const [key,f] of enSkill(m)){ let v=data[f]; if(v===true)v=t('yes'); if(v===false)v=t('no'); if(v!==undefined && v!=='') body.append(key,String(v)); }
+  return body; }
+// Con el mismo tiempo límite que el webhook: sin él, un Google Forms que no contestaba dejaba Enviar
+// en «Enviando…» el resto de la llamada.
+function sendGoogleForm(action, body){
+  return fetch(action,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:limite()});
+}
+// Vista previa al escribir el enlace: qué campo del formulario recibe qué dato, o por qué no vale.
+function paintFormMap(){
+  const el=$('gformMap'), v=$('gform').value.trim(); if(!v){ el.hidden=true; return; }
+  const m=formMapping(v); el.hidden=false;
+  const label=f=>{ const s=slotsOf(skill).find(([k])=>k===f); return s?s[1]:f; };
+  if(!m.ok){ el.className='map warn'; el.textContent=t('gformBad'); return; }
+  if(!m.pairs.length){ el.className='map warn'; el.textContent=t('gformNone'); return; }
+  const usa=enSkill(m), otros=m.pairs.filter(p=>!usa.includes(p));
+  el.className=usa.length?'map':'map warn';
+  el.textContent=[usa.length?t('gformMap',{list:usa.map(([k,f])=>k+' → '+label(f)).join(' · ')}):t('gformNoneSkill'),
+    otros.length?t('gformSkip',{list:otros.map(([k,f])=>k+' ('+f+')').join(', ')}):''].filter(Boolean).join(' '); }
+$('gform').addEventListener('input', paintFormMap); $('gform').addEventListener('blur', paintFormMap);
+paintFormMap();
+// Enlace para el equipo: la skill, el idioma y el destino tras la «#» (no llega a ningún servidor).
+$('teamLink').onclick=async()=>{
+  const u=new URL(location.origin+location.pathname);
+  const h=new URLSearchParams({ skill:skill.id, lang:$('lang').value, ui:UI });
+  const w=$('webhook').value.trim(), f=$('gform').value.trim(); if(w) h.set('webhook',w); if(f) h.set('form',f);
+  u.hash=h.toString(); const link=u.toString();
+  try{ await navigator.clipboard.writeText(link); $('teamLinkRes').textContent=t('teamLinkDone'); }
+  catch{ prompt(t('teamLinkPrompt'), link); } };
+$('exp').onclick=exportCSV; $('send').onclick=sendData;
+
+// ── device + progreso ──
+let DEVICE='wasm';
+(async()=>{ try{ if(navigator.gpu && await navigator.gpu.requestAdapter()) DEVICE='webgpu'; }catch{} })().then(()=>paintDlNote());
+// El porcentaje se calcula sobre lo que se espera bajar (DL.expect) y nunca retrocede: con dos
+// modelos bajando a la vez iba 0 % → 25 % → 100 % → 25 % según aparecían ficheros.
+// Se ve en una barra dentro de la barra de arriba, junto a Parar, CSV y Enviar, que siguen a mano:
+// el micro (y la grabación, si se marcó) ya están en marcha, y lo que se diga mientras se guarda en
+// la cola y se transcribe al terminar. Antes era un velo a pantalla completa encima de todo.
+const DL={files:new Map(), shown:0, expect:0};
+function dlProgress(e){ if(!e)return;
+  if(MC.esDeAlmacen(e)) return;   // lo que sale del disco no se baja: no cuenta en la barra
+  if(e.file&&(e.status==='progress'||e.status==='done')){ const p=DL.files.get(e.file)||{loaded:0,total:0};
+    DL.files.set(e.file,{loaded:e.status==='done'?(e.total||p.total||p.loaded):(e.loaded||p.loaded),total:e.total||p.total}); }
+  let l=0,tot=0; for(const v of DL.files.values()){l+=v.loaded;tot+=v.total;}
+  const den=Math.max(tot,DL.expect), pct=Math.max(DL.shown, den?Math.min(100,Math.round(l/den*100)):0); DL.shown=pct;
+  if($('dlBar').hidden){ $('dlBar').hidden=false; if(on && $('status').textContent===t('listeningFill')) setStatus(t('dlListening'),'work'); }
+  $('dlFill').style.width=pct+'%'; $('dlProgress').setAttribute('aria-valuenow',String(pct));
+  $('dlPct').textContent=pct+' %'+(den?' · '+tamano(l)+' / '+tamano(den):''); dlKeepAlive(); }
+// La barra se cierra cuando han terminado LOS DOS modelos (voz y quién habla; ver start()).
+// Antes la cerraba el primero que acababa, con el otro aún bajando, y volvía a abrirse empezando
+// de cero. Y, como en el Translator, red de seguridad: si algo la abre y nadie la cierra, se
+// cierra sola a los 8 s de la última señal de progreso.
+let dlGuard=null;
+function dlKeepAlive(){ clearTimeout(dlGuard); dlGuard=setTimeout(()=>{ $('dlBar').hidden=true; }, 8000); }
+function dlDone(){ clearTimeout(dlGuard); $('dlBar').hidden=true; DL.files.clear(); DL.shown=0; DL.expect=0; paintDlNote();
+  if(on && ($('status').textContent===t('dlListening') || sinCola)) setStatus(t('listeningFill'),''); }
+
+// ── ASR (whisper-base, como el Translator) ──
+// En wasm, onnxruntime corre en un worker aparte (proxy): en el iPhone cargar y transcribir en
+// el hilo de la página la dejaba sin responder minutos y Safari acababa recargándola. Con
+// WebGPU no se puede (el proxy solo sirve para wasm), y en escritorio con GPU no hace falta.
+// Versión fija del motor y los modelos en el almacén compartido de Elffuss (ver model-cache.mjs):
+// lo que ya bajó el Traductor no se vuelve a bajar aquí.
+let TFmod=null; async function tf(){ if(!TFmod){ const T=await import(MC.TF_URL); MC.instalar(T,{onProgress:dlProgress});
+  T.env.backends.onnx.wasm.proxy = IA.esMovil() || DEVICE!=='webgpu'; TFmod=T; } return TFmod; }
+// La persistencia se pide al pulsar Empezar (ver start()), no al cargar: en Firefox salía un permiso
+// antes de que nadie hubiera hecho nada.
+// Combinaciones de modelo y precisión que SÍ funcionan en navegador (medido 2026-09-16 sobre la misma
+// llamada): GPU solo con precisión completa (factor 0,09 sobre el tiempo real) y CPU solo con 8 bits
+// (0,73). Con GPU, tanto 8 bits como precisión media devuelven texto ilegible («>> >> >>»), y small
+// por CPU va a 7,65, o sea, mucho más lento que hablar. No cambiar esto sin volver a medir.
+// Un fallo de carga no se queda guardado: el siguiente intento vuelve a probar.
+let asrGpu=null;   // false si Whisper cayó de la GPU a la CPU (otros ficheros)
+let asrP=null; async function getASR(){ if(asrP)return asrP; asrP=(async()=>{ const {pipeline}=await tf();
+  if(DEVICE==='webgpu' && !IA.esMovil()){ try{ return await pipeline('automatic-speech-recognition','onnx-community/whisper-base',{dtype:'fp32',device:'webgpu',progress_callback:dlProgress}); }
+    catch(e){ asrGpu=false; for(const k of [...DL.files.keys()]) if(k.includes('whisper')) DL.files.delete(k); } }   // solo lo de Whisper: el otro modelo sigue bajando
+  return await pipeline('automatic-speech-recognition','onnx-community/whisper-base',{dtype:'q8',device:'wasm',progress_callback:dlProgress}); })();
+  asrP.catch(()=>{ asrP=null; }); return asrP; }
+let diarP=null; async function getDiar(){ if(!diarP){ diarP=(async()=>loadDiarizer(await tf(),{device:IA.esMovil()?'wasm':DEVICE}))(); diarP.catch(()=>{ diarP=null; }); } return diarP; }
+function resample(d,inR,outR){ if(inR===outR)return d; const r=inR/outR,len=Math.round(d.length/r),o=new Float32Array(len);
+  for(let i=0;i<len;i++){ const idx=i*r,i0=Math.floor(idx),i1=Math.min(i0+1,d.length-1),f=idx-i0; o[i]=d[i0]*(1-f)+d[i1]*f; } return o; }
+function _rms(a){ let s=0; for(let i=0;i<a.length;i++)s+=a[i]*a[i]; return Math.sqrt(s/a.length); }
+const _HALU=/^(gracias\.?|subt[ií]tulos.*|thanks for watching\.?|you|\.|\s)+$/i;
+async function transcribe(a16k,lang){ const asr=await getASR(); if(a16k.length<4000)return ''; if(_rms(a16k)<0.0008)return '';
+  const out=await asr(a16k,{language:lang,task:'transcribe',temperature:0,no_repeat_ngram_size:3});
+  let t=cleanText(out&&out.text); if(!t||_HALU.test(t))return ''; return t; }
+
+// ── onda de voz ──
+let waveStop=null;
+function startWave(stream,active,ctx){ const cv=$('wave'); if(!cv)return; const an=ctx.createAnalyser(); an.fftSize=128; an.smoothingTimeConstant=0.75;
+  ctx.createMediaStreamSource(stream).connect(an); const data=new Uint8Array(an.frequencyBinCount),N=32,cx=cv.getContext('2d'),acc=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); let alive=true;
+  const draw=()=>{ if(!alive||!active()){ cx.clearRect(0,0,cv.width,cv.height); return; } an.getByteFrequencyData(data); const W=cv.width,H=cv.height,bw=W/N; cx.clearRect(0,0,W,H);
+    for(let i=0;i<N;i++){ const idx=Math.min(data.length-1,Math.floor(Math.pow(i/N,1.35)*data.length)),v=Math.min(1,data[idx]/255*1.9),h=Math.max(3,v*H),x=i*bw+bw*.26,w=bw*.48,y=(H-h)/2;
+      cx.fillStyle=acc; cx.globalAlpha=.4+v*.6; cx.beginPath(); cx.roundRect?cx.roundRect(x,y,w,h,w/2):cx.rect(x,y,w,h); cx.fill(); } cx.globalAlpha=1; requestAnimationFrame(draw); };
+  waveStop=()=>{ alive=false; try{cx.clearRect(0,0,cv.width,cv.height);}catch{} }; draw(); }
+
+// ── audio de la llamada (mezcla micro + pestaña compartida) ──
+// Devuelve lo conseguido sin tocar el estado global: si mientras el navegador preguntaba se pulsó
+// Parar, start() lo suelta todo.
+let _mixCtx=null,_disp=null;
+async function addCallAudio(mic){ try{ const d=await navigator.mediaDevices.getDisplayMedia({video:true,audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  d.getVideoTracks().forEach(t=>t.stop()); const da=d.getAudioTracks(); if(!da.length) return { stream:mic, disp:d, mix:null, both:false, note:t('noAudio') };
+  const AC=window.AudioContext||window.webkitAudioContext; const mix=new AC(); const dest=mix.createMediaStreamDestination();
+  mix.createMediaStreamSource(mic).connect(dest); mix.createMediaStreamSource(new MediaStream(da)).connect(dest);
+  da[0].addEventListener('ended',()=>{ if(_disp!==d) return; setStatus(t('shareEnded'),'work'); setMode(false); });
+  return { stream:dest.stream, disp:d, mix, both:true, note:'' }; }
+  catch(e){ return { stream:mic, disp:null, mix:null, both:false, note:t('shareFailed',{err:e.name||t('cancelled')}) }; } }
+
+// ── micrófonos ──
+async function populateMics(){ try{ const devs=await navigator.mediaDevices.enumerateDevices(); const ins=devs.filter(d=>d.kind==='audioinput'); const sel=$('micDev'); const cur=sel.value;
+  sel.innerHTML='<option value="">'+t('micDefault')+'</option>'+ins.map((d,i)=>`<option value="${d.deviceId}">${(d.label||t('micN',{n:i+1})).replace(/"/g,'&quot;')}</option>`).join(''); if(cur)sel.value=cur; }catch{} }
+populateMics();
+
+// ── estado + conversación ──
+const setStatus=(t,c='')=>{ const s=$('status'); if(s){s.textContent=t; s.className='status '+c;} };
+let transcript=[]; // {who:'S1'|'S2', text}
+let on=false, ctx=null, stream=null, mic=null, proc=null, book=null, busy=false;
+// Sube en cada Empezar y en cada Parar. Lo que estaba esperando algo (un arranque, una frase
+// transcribiéndose, un turno de la IA) lo compara al despertar y, si cambió, se retira sin pintar.
+// Antes, tras Parar, la frase en vuelo y la respuesta de la IA seguían cambiando la ficha.
+let sesion=0;
+const stopTracks=x=>{ try{ x&&x.getTracks().forEach(tr=>tr.stop()); }catch{} };
+function addLine(who,text){ const em=$('emptyMsg'); if(em)em.remove();
+  const el=document.createElement('div'); el.className='tline '+(who==='S2'?'b':'a');
+  el.innerHTML=`<div class="who">${who==='S2'?t('who_S2'):t('who_S1')}</div><div>${escapeHtml(text)}</div>`;
+  const log=$('log'); const pegado=log.scrollHeight-log.scrollTop-log.clientHeight<120; log.appendChild(el); if(pegado)log.scrollTop=log.scrollHeight; }
+
+// Lo que pasó de verdad con el micrófono: antes cualquier fallo (no hay micro, está ocupado) mandaba a
+// cambiar el permiso en el candado.
+function micError(e){ const n=e?.name||'';
+  if(n==='NotFoundError'||n==='DevicesNotFoundError') return escapeHtml(t('micNotFound'));
+  if(n==='OverconstrainedError') return escapeHtml(t('micGone'));
+  if(n==='NotReadableError'||n==='TrackStartError'||n==='AbortError') return escapeHtml(t('micBusy'));
+  return t('allowMic')+' <a href="https://support.google.com/chrome/answer/2693767" target="_blank" rel="noopener">'+t('micHelp')+'</a>'; }
+// Devuelve true si entró en la llamada; false si se quedó en el inicio (sin micro, o cancelado).
+async function start(){
+  const mia=++sesion, vigente=()=>mia===sesion;
+  // Con el clic aún reciente: que el navegador no tire los modelos cuando ande justo de espacio.
+  try{ navigator.storage?.persisted?.().then(ya=>ya||navigator.storage.persist()).catch(()=>{}); }catch{}
+  const c={echoCancellation:true,noiseSuppression:true,autoGainControl:true}; const dev=$('micDev').value; if(dev)c.deviceId={exact:dev};
+  let m;
+  try{ m=await navigator.mediaDevices.getUserMedia({audio:c}); }
+  catch(e){ if(vigente()) showStartErr(micError(e)); return false; }
+  if(!vigente()){ stopTracks(m); return false; }
+  populateMics();
+  setMode(false);
+  let s=m, call=null;
+  if($('callAudio').checked && !$('callAudio').disabled){
+    call=await addCallAudio(m);
+    if(!vigente()){ stopTracks(call.disp); try{ call.mix&&call.mix.close(); }catch{} stopTracks(m); return false; }
+    s=call.stream; _disp=call.disp; _mixCtx=call.mix; setMode(call.both); }
+  mic=m; stream=s;
+  if($('recOpt').checked && !$('recOpt').disabled) startRecording(stream);
+  iaActiva = $('iaOpt').checked && !$('iaOpt').disabled;
+  if(iaActiva) iniciarIA();
+  $('setup').hidden=true; $('live').hidden=false; $('skName').textContent=skill.icon+' '+skName(skill); $('uiToggle').hidden=true;
+  $('stop').hidden=false; $('newCall').hidden=true; showSendRes('');
+  data={}; transcript=[]; iaConsejo=''; renderBoard(null);
+  book=makeSpeakerBook({tau:0.5,maxSpeakers:2}); on=true;
+  setStatus(call && call.note ? call.note : t('listeningFill'),'work');
+  $('skName').focus();   // antes el foco caía al <body>
+  // precargar los dos modelos con una sola barra de progreso, que se cierra cuando acaban AMBOS
+  // Solo lo que falta (lo midió paintDlNote): antes contaba también lo que ya estaba guardado.
+  DL.expect=vozFaltaBytes;
+  vozLista=false; sinCola=0; $('cacheNote').hidden=true;
+  Promise.all([getASR(), getDiar()]).then(()=>{ vozLista=true; dlDone();
+    // Detrás: ¿quedó guardado?, la caché vieja al almacén compartido, y el motor al service worker.
+    comprobarVoz(mia).then(()=>MC.migrarLegado()).catch(()=>{}); MC.guardarMotor();
+  }, e=>{ dlDone(); if(mia===sesion) setStatus(t('modelsFail',{err:String(e?.message||e).slice(0,80)}),'err'); });
+  const AC=window.AudioContext||window.webkitAudioContext; ctx=new AC();
+  // Creado tras pedir el micrófono: en iOS puede nacer suspendido y no llega ni una muestra.
+  if(ctx.state!=='running'){ try{ await ctx.resume(); }catch{} }
+  if(!vigente() || !on) return true;   // Parar durante resume(): stop() ya lo cerró todo
+  const src=ctx.createMediaStreamSource(stream);
+  proc=ctx.createScriptProcessor(4096,1,1); src.connect(proc); proc.connect(ctx.destination); startWave(stream,()=>on,ctx);
+  const SR=ctx.sampleRate; let buf=[],voiced=false,sil=0,len=0;
+  proc.onaudioprocess=e=>{ if(!on)return; const d=e.inputBuffer.getChannelData(0),r=_rms(d);
+    if(r>0.015){ voiced=true; sil=0; buf.push(new Float32Array(d)); len+=d.length; }
+    else if(voiced){ buf.push(new Float32Array(d)); sil+=d.length;
+      if(sil>SR*0.7){ const seg=flat(buf); buf=[]; const sl=len; voiced=false; sil=0; len=0; if(sl>SR*0.4) encolar(resample(seg,SR,16000)); } } };
+}
+function flat(cs){ let n=0; for(const c of cs)n+=c.length; const o=new Float32Array(n); let i=0; for(const c of cs){o.set(c,i);i+=c.length;} return o; }
+// Cola de trozos de voz: mientras se transcribe uno, el micro SIGUE escuchando. Antes, con
+// Whisper ocupado se tiraba el audio que llegaba, y en CPU o en móvil (donde transcribir tarda
+// más que la frase) se perdían frases enteras: medido en CPU con voz sintética, de «Trabajo en
+// Construcciones Norte» solo llegaba «de». Tope de 30 trozos por si el equipo no da abasto.
+// Mientras bajan los modelos la primera vez, en cambio, se guarda TODO lo que se diga, hasta 5 minutos
+// de voz, y si no cabe más se tira lo NUEVO y se dice cuánto. Antes se quedaba con los 30 últimos
+// trozos y tiraba los primeros sin avisar, aunque el estado prometía transcribirlo todo: justo las
+// presentaciones (nombre, empresa), lo que más falta en la ficha. Lo guardado durante la descarga no
+// cuenta para el tope de 30 (si no, el tope lo tiraría en cuanto llegara la frase siguiente).
+const cola=[], COLA_MAX=30, COLA_CARGA_S=300;
+let vozLista=false, enCarga=0, muestrasCarga=0, sinCola=0;
+const colaCargaMax=()=>(globalThis.__COPILOTO_COLA_CARGA_S ?? COLA_CARGA_S)*16000;   // muestras; la variable es para las pruebas
+function encolar(a16k){
+  if(!vozLista){
+    if(muestrasCarga+a16k.length>colaCargaMax()){ sinCola++; setStatus(t('dlQueueFull',{n:sinCola}),'err'); return; }
+    cola.push(a16k); enCarga++; muestrasCarga+=a16k.length;
+  } else { cola.push(a16k); if(cola.length-enCarga>COLA_MAX) cola.splice(enCarga,1); }
+  if(!busy) procesarCola(); }
+function vaciarCola(){ cola.length=0; enCarga=0; muestrasCarga=0; }
+function siguienteDeCola(){ const a=cola.shift(); if(enCarga>0){ enCarga--; muestrasCarga-=a.length; } return a; }
+// Al pulsar «Parar» lo que ya estaba en la cola SE TRANSCRIBE igualmente: en CPU o en móvil la
+// cola va por detrás de la voz, y descartarla perdía justo lo último de la llamada.
+async function procesarCola(){ busy=true; try{ while(on && cola.length) await handle(siguienteDeCola()); } finally{ busy=false; vaciarCola(); if(!on) setStatus(t('stopped'),''); } }
+async function handle(a16k){
+  // Tras cada espera: si se pulsó Parar (o empezó otra llamada) la frase se retira sin pintar nada.
+  const mia=sesion, vigente=()=>mia===sesion && on;
+  try{ const D=await getDiar(); if(!vigente()) return;
+    const vec=await speakerVec(D,a16k); if(!vigente()) return;
+    const {label}=book.assign(vec);   // S1/S2 por voz
+    setStatus(t('transcribing'),'work');
+    const text=await transcribe(a16k,$('lang').value); if(!vigente()) return;
+    if(!text){ setStatus(t('listening'),''); return; }
+    const who = label==='S1'?'S1':'S2'; addLine(who,text);
+    transcript.push({who,text});
+    // extracción determinista → ficha
+    const det=extractDeterministic(); let just=null;
+    if(skill.goals){ for(const [k] of slotsOf(skill)){ const nv=!!det[k]; if(nv && data[k]!==true){just=k;} if(nv)data[k]=true; } }
+    else { for(const [k,v] of Object.entries(det)){ if(data[k]!==v){data[k]=v; just=k;} } }
+    renderBoard(just);
+    iaTurno();
+    setStatus(t('listeningFill'),'');
+  }catch(e){ if(vigente()) setStatus('error: '+String(e?.message||e).slice(0,50),'err'); }
+}
+// Al parar hay que TIRAR lo que quede en la cola: si no, en un móvil lento el Copiloto sigue
+// escribiendo frases un rato largo después de pulsar Parar y parece que el botón no hace nada.
+// Y lo que estaba en vuelo (la frase transcribiéndose, el turno de la IA) se retira (sesion).
+function stop(){
+  if(!on) return;
+  sesion++; on=false; vaciarCola(); IA.cancelar(); stopRecording();
+  try{proc&&(proc.onaudioprocess=null,proc.disconnect());}catch{} try{ctx&&ctx.state!=='closed'&&ctx.close();}catch{}
+  proc=null; ctx=null;
+  // Con el audio de la llamada, stream es la mezcla: el micro se apaga aparte.
+  stopTracks(stream); stopTracks(mic); stream=null; mic=null; stopTracks(_disp); _disp=null;
+  try{_mixCtx&&_mixCtx.state!=='closed'&&_mixCtx.close();}catch{} _mixCtx=null;
+  if(waveStop){try{waveStop();}catch{}} setStatus(t('stopped'),'');
+  // Ya no es un callejón sin salida («Recarga para otra llamada»): Parar pasa a «Nueva llamada» y la
+  // ficha sigue a mano para descargarla o enviarla. El foco va a CSV, no a «Nueva llamada»: con el
+  // teclado, un segundo Intro tiraba la ficha sin preguntar.
+  $('stop').hidden=true; $('newCall').hidden=false; $('exp').focus(); }
+// Otra llamada sin recargar: se limpia la ficha y la transcripción y se vuelve al inicio, con los
+// modelos ya cargados. Con una ficha que no se ha enviado ni descargado, se pregunta antes (como al
+// cerrar la pestaña).
+function newCall(){
+  if(fichaSinGuardar() && !confirm(t('newCallConfirm'))) return;
+  data={}; transcript=[]; iaConsejo=''; vaciarCola(); pantalla++;
+  sending=0; sendSeq++; paintSendBtns();   // un envío que aún esperaba no bloquea la llamada nueva
+  $('log').innerHTML='<div class="empty" id="emptyMsg" data-i18n="empty"></div>'; $('emptyMsg').innerHTML=t('empty');
+  $('board').replaceChildren(); showSendRes(''); closeDestLive();
+  $('recChip').hidden=true; $('recDl').hidden=true; recBlob=null;
+  iaChip(''); $('iaRetry').hidden=true;
+  $('stop').hidden=false; $('newCall').hidden=true;
+  $('live').hidden=true; $('setup').hidden=false; $('uiToggle').hidden=false;
+  setStatus(t('listening'),''); setMode(false);
+  paintIADl(); paintDlNote();   // si la IA aún baja, se ve aquí y se puede cancelar
+  $('start').disabled=false; $('start').focus(); }
+function showStartErr(html){ const e=$('startErr'); e.innerHTML=html; e.hidden=!html; }
+// iOS solo pone en marcha el audio de una web si la primera vez ocurre DENTRO de un toque;
+// start() pide el micrófono antes de crear su contexto y tras ese await el toque ya no cuenta.
+function desbloquearAudioIOS(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(AC){ const ac=new AC(); ac.resume().finally(()=>setTimeout(()=>{ try{ac.close();}catch{} },1000)); } }catch{} }
+// Si no se entra en la llamada (micro denegado, o un error), Empezar vuelve a estar disponible
+// con el motivo debajo. Antes, tras negar el micro, se quedaba desactivado hasta recargar.
+$('start').onclick=async()=>{ desbloquearAudioIOS(); showStartErr(''); $('start').disabled=true;
+  let dentro=false;
+  try{ dentro=await start(); }
+  catch(e){ if($('live').hidden) showStartErr(escapeHtml(t('cantStart')+String(e?.message||e))); else { dentro=true; setStatus(t('cantStart')+String(e?.message||e).slice(0,80),'err'); } }
+  if(!dentro){ $('start').disabled=false; $('start').focus(); } };
+$('stop').onclick=stop; $('newCall').onclick=newCall;
+
+// ── botón de idioma de la interfaz ──
+$('uiToggle').onclick = () => {
+  UI = UI === 'es' ? 'en' : 'es';
+  try { localStorage.setItem('elffuss_cop_ui', UI); } catch {}
+  applyStatic(); renderSkills(); applyCap(); populateMics(); paintClear(); paintDlNote(); setMode(false); paintIAOpt(); paintIADl(); paintFormMap(); syncUrl();
+};
+
+// ── borrar los modelos descargados, a la vista ──
+// El chip de disco de abajo a la izquierda es pequeño y solo sale si ya hay algo; en
+// la pantalla de inicio va además este botón claro. Borra lo mismo que el chip:
+// Cache Storage (la caché de modelos de antes y la de la IA avanzada), OPFS y el almacén compartido de
+// Elffuss (models.elffuss.com), donde van ahora los modelos de voz. La caché de la propia app (la del
+// service worker, para abrir sin red) no se toca: no son modelos.
+const esCacheApp = k => k.startsWith('elffuss-app-');
+const tamano = n => n >= 1073741824 ? (n / 1073741824).toFixed(1) + ' GB' : Math.max(1, Math.round(n / 1048576)) + ' MB';
+// Sin disabled mientras borra (tiraba el foco al <body>): aria-disabled y los clics se ignoran. Si el
+// botón tenía el foco al esconderse, pasa a Empezar.
+function hideClear() { const b = $('clearCache'), tenia = document.activeElement === b; b.hidden = true; b.removeAttribute('aria-disabled'); if (tenia && !$('start').disabled) $('start').focus(); }
+async function paintClear() {
+  const b = $('clearCache');
+  try {
+    const [e, ks, comp] = await Promise.all([navigator.storage.estimate(), caches.keys(), MC.usoCompartido()]);
+    const uso = (e.usage || 0) + comp;
+    // estimate() tarda en enterarse de un borrado: si ya no queda ninguna caché de modelos ni nada en el
+    // almacén compartido, no hay nada que borrar.
+    if (uso < 5 * 1048576 || (!ks.filter(k => !esCacheApp(k)).length && comp < 1048576)) { hideClear(); return; }
+    b.hidden = false; b.removeAttribute('aria-disabled'); b.textContent = t('clearBtn', { size: tamano(uso) });
+  } catch { hideClear(); }
+}
+$('clearCache').onclick = async () => {
+  if ($('clearCache').getAttribute('aria-disabled') === 'true') return;
+  const e = await navigator.storage.estimate().catch(() => ({ usage: 0 }));
+  const comp = await MC.usoCompartido();
+  if (!confirm(t('clearConfirm', { size: tamano((e.usage || 0) + comp) }))) return;
+  const b = $('clearCache'); b.setAttribute('aria-disabled', 'true'); b.textContent = t('clearing');
+  try {
+    for (const k of await caches.keys()) if (!esCacheApp(k)) await caches.delete(k);
+    const d = navigator.storage.getDirectory ? await navigator.storage.getDirectory() : null;
+    if (d) for await (const n of d.keys()) { try { await d.removeEntry(n, { recursive: true }); } catch {} }
+  } catch {}
+  await MC.vaciarCompartido();
+  b.textContent = t('cleared'); setTimeout(paintClear, 2500);
+};
+paintClear();
+
+// ── grabar la conversación (opcional: solo si se marca la casilla) ──
+// Por defecto NO se graba, y la casilla no recuerda la elección: nadie debería grabar
+// una llamada sin haberlo decidido en esa llamada. Si se marca, se graba lo mismo que
+// oye el copiloto (micro, o micro + llamada) con MediaRecorder en Opus a 24 kbps: voz
+// clara en unos 11 MB por hora. Vive en la memoria de la pestaña y al pulsar «Parar»
+// se descarga al equipo; no sube a ningún sitio. Safari no graba Opus: ahí va AAC (.m4a).
+const REC_BPS = 24000;
+const REC_MIME = (() => {
+  if (!window.MediaRecorder) return null;
+  for (const m of ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4;codecs=mp4a.40.2', 'audio/mp4'])
+    if (MediaRecorder.isTypeSupported?.(m)) return m;
+  return '';
+})();
+let rec = null, recChunks = [], recBytes = 0, recT0 = 0, recTimer = null, recBlob = null;
+const pesoGrab = n => n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+const mmss = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function recExt(mime) { return /ogg/.test(mime) ? 'ogg' : /mp4|aac/.test(mime) ? 'm4a' : 'webm'; }
+function paintRec() {
+  if (!rec) return;
+  $('recChip').textContent = t('recLive', { time: mmss((Date.now() - recT0) / 1000), size: pesoGrab(recBytes) });
+}
+// Lo poco que merece decirse en alto (empieza y acaba la grabación, cómo acaba la carga de la IA) va a
+// una región invisible: el chip cambia cada segundo y, como región viva, el lector de pantalla leía el
+// contador sin parar. Dos avisos seguidos se leen juntos: el segundo ya no pisa al primero.
+let anuncios = [], anuncioT = null;
+function announce(texto) { const n = $('srNote'); anuncios.push(texto); clearTimeout(anuncioT); n.textContent = '';
+  anuncioT = setTimeout(() => { n.textContent = anuncios.join(' '); anuncios = []; }, 100); }
+function startRecording(s) {
+  if (REC_MIME === null) return;
+  try { rec = new MediaRecorder(s, { ...(REC_MIME ? { mimeType: REC_MIME } : {}), audioBitsPerSecond: REC_BPS }); }
+  catch { try { rec = new MediaRecorder(s); } catch { rec = null; return; } }
+  recChunks = []; recBytes = 0; recBlob = null; recT0 = Date.now();
+  rec.ondataavailable = e => { if (e.data && e.data.size) { recChunks.push(e.data); recBytes += e.data.size; } };
+  rec.onstop = () => {
+    clearInterval(recTimer);
+    recBlob = new Blob(recChunks, { type: rec.mimeType || REC_MIME || 'audio/webm' }); recChunks = [];
+    const c = $('recChip'); c.className = 'recchip done'; c.textContent = t('recReady', { size: pesoGrab(recBlob.size) });
+    $('recDl').hidden = false; announce(c.textContent);
+    downloadRecording();
+  };
+  rec.start(5000);   // un trozo cada 5 s: así el chip enseña lo que va ocupando
+  const c = $('recChip'); c.hidden = false; c.className = 'recchip on'; paintRec(); announce(t('recStarted'));
+  recTimer = setInterval(paintRec, 1000);
+}
+function stopRecording() { if (rec && rec.state !== 'inactive') { try { rec.stop(); } catch {} } }
+function downloadRecording() {
+  if (!recBlob) return;
+  const d = new Date(), p2 = n => String(n).padStart(2, '0');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(recBlob);
+  a.download = `${t('recFile')}-${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.${recExt(recBlob.type)}`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+}
+$('recDl').onclick = downloadRecording;
+// Cerrar o recargar la pestaña a mitad de una llamada (o de una grabación), o con una ficha que no se
+// ha enviado ni descargado, la perdería entera: se avisa antes. (Los enlaces de la cabecera y el pie
+// ya abren en otra pestaña: antes un clic en «Claw» terminaba la llamada sin avisar.)
+window.addEventListener('beforeunload', e => { if (on || (rec && rec.state === 'recording') || fichaSinGuardar()) { e.preventDefault(); e.returnValue = ''; } });
+if (REC_MIME === null) { $('recOpt').disabled = true; $('recLbl').classList.add('off'); $('recLbl').querySelector('span').dataset.i18n = 'recOff'; applyStatic(); }
+
+// ── IA avanzada: modelo de lenguaje, opcional ──
+// El motor está en copilot-llm.mjs y la validación en copilot-grammar.mjs. Las reglas siguen
+// mandando en lo que tienen forma fija; el modelo añade la NECESIDAD, el SIGUIENTE PASO y un
+// consejo, y todo lo que proponga tiene que haberse dicho.
+// Desmarcada por defecto: son 2,8 GB y una descarga así se elige, no se esquiva (antes venía
+// marcada en escritorio). Se recuerda lo que elija cada uno. En MÓVIL además está sin medir si
+// Gemma cabe junto a Whisper en la memoria de una pestaña de Safari.
+let iaModelo, iaConsejo = '';
+// iaActiva: esta llamada usa la IA (la casilla al pulsar Empezar). pantalla: sube con «Nueva llamada».
+// La descarga del modelo no es de una llamada: tras Parar sigue bajando y el chip lo sigue diciendo
+// (antes se quedaba congelado en el último porcentaje), y Reintentar sigue sirviendo (antes no hacía
+// nada tras Parar). De vuelta al inicio («Nueva llamada») se sigue viendo, con su porcentaje y un
+// Cancelar, y desmarcar la casilla la corta: antes seguía bajando gigas sin nada a la vista y sin
+// manera de pararla, también durante una llamada sin la IA.
+let iaActiva = false, pantalla = 0;
+let iaBaja = null;   // {cargado, total} mientras baja el modelo (no si sale de la caché)
+// Qué campos NO puede pisar la IA: los de formato estricto, donde el modelo se come dígitos o
+// reescribe el correo. En el resto manda la IA (entiende «me llamo…» dicho de mil maneras) y la
+// gramática ya exige que el valor esté dicho en la conversación.
+const REGLAS_DE = new Set(['telefono', 'email']);
+const IDIOMA_NOMBRE = Object.fromEntries(LANGS);
+function skLLM(s) {
+  const slots = slotsOf(s).map(([key, label]) => ({ key, label }));
+  const claves = s.slots.join(', ');
+  const rule = s.goals ? 'OBJETIVOS: ' + s.slots.map(k => k + '=si|no').join('; ')
+    : UI === 'en'
+      ? `DATOS: only fields that were actually said, separated by semicolons, with these keys: ${claves}. Example: DATOS: nombre=<name as said>; necesidad=<what they need, in a few words>; siguiente=<what was agreed>. Leave out anything not said; never write ellipses.`
+      : `DATOS: solo los campos que se hayan dicho, separados por punto y coma, con estas claves: ${claves}. Ejemplo: DATOS: nombre=<nombre tal cual>; necesidad=<lo que busca, en pocas palabras>; siguiente=<lo acordado>. Omite los que no se hayan dicho; no escribas puntos suspensivos.`;
+  return { nombre: skName(s), tag: s.goals ? 'OBJETIVOS' : 'DATOS', kind: s.goals ? 'goals' : 'fields', slots, rule };
+}
+function paintIAOpt() {
+  const lbl = $('iaLbl'), cb = $('iaOpt'), span = lbl.querySelector('span');
+  if (iaModelo === undefined) { span.textContent = t('iaChecking'); cb.disabled = true; return; }
+  if (!iaModelo) { cb.checked = false; cb.disabled = true; lbl.classList.add('off'); span.textContent = t('iaNone'); return; }
+  cb.disabled = false; lbl.classList.remove('off');
+  // El nombre del modelo enlaza a su ficha en Hugging Face (lo que se baja, exactamente).
+  const M = IA.MODELOS[iaModelo];
+  span.innerHTML = escapeHtml(t(IA.esMovil() ? 'iaOptMobile' : 'iaOpt', { modelo: '\u0000', peso: tamano(M.mb * 1048576) }))
+    .replace('\u0000', `<a href="${escapeHtml(M.ficha)}" target="_blank" rel="noopener">${escapeHtml(M.etiqueta)}</a>`);
+}
+paintIAOpt();
+IA.elegirModelo().catch(() => null).then(m => {
+  iaModelo = m;
+  let pref = null; try { pref = localStorage.getItem('elffuss_cop_ia'); } catch {}
+  $('iaOpt').checked = !!m && pref === 'on';
+  paintIAOpt(); paintDlNote();
+});
+// Desmarcar la casilla retira el permiso: si el modelo aún baja, se corta.
+$('iaOpt').onchange = () => { try { localStorage.setItem('elffuss_cop_ia', $('iaOpt').checked ? 'on' : 'off'); } catch {} if (!$('iaOpt').checked) cancelarIA(); paintDlNote(); };
+function cancelarIA() { if (!IA.cancelarCarga()) return; iaBaja = null; paintIADl(); announce(t('iaCancelled')); }
+// «Cancelar la descarga» es lo mismo que desmarcar la casilla, y el foco pasa a ella (el botón se va).
+$('iaCancel').onclick = () => { const f = document.activeElement === $('iaCancel'); $('iaOpt').checked = false; $('iaOpt').onchange(); if (f) $('iaOpt').focus(); };
+function iaChip(texto) { const c = $('iaChip'); c.hidden = !texto; c.textContent = texto || ''; }
+const pctIA = b => b.total ? `${Math.round(b.cargado / b.total * 100)} % · ${tamano(b.cargado)} / ${tamano(b.total)}` : tamano(b.cargado);
+// La línea del inicio con la descarga de la IA en marcha (no es una región viva: cambia con cada trozo).
+function paintIADl() { $('iaDl').hidden = !iaBaja; if (iaBaja) $('iaDlMsg').textContent = t('iaDlLine', { pct: pctIA(iaBaja) }); }
+// Cuánto baja la primera vez, dicho ANTES de pulsar Empezar. Medido en Hugging Face y jsdelivr:
+// voz (whisper-base) + quién habla (pyannote + wespeaker) + motor (onnxruntime). Con GPU el
+// modelo va sin cuantizar y pesa el triple. Si ya está en la caché, se dice eso en su lugar.
+// Ahora se mira la lista ENTERA de ficheros del modelo de voz (en el almacén compartido de Elffuss y
+// en la caché de esta web) y se cuenta solo lo que falta, más el motor (onnxruntime).
+const MOTOR_MB = 21;
+let vozFaltaBytes = 0;
+const vozFicheros = () => { const gpu = DEVICE === 'webgpu' && !IA.esMovil();
+  return [...MC.ficheros('onnx-community/whisper-base', (asrGpu ?? gpu) ? 'fp32' : 'q8'), ...MC.ficherosVoz(gpu).filter(x => !x.url.includes('/whisper-base/'))]; };
+async function enCache(nombre, url) { try { return !!(await (await caches.open(nombre)).match(url)); } catch { return false; } }
+// ¿Quedó guardado el modelo de voz? Si no (sin sitio, o el navegador no deja), se dice: la próxima vez
+// se volverá a bajar.
+async function comprobarVoz(mia) {
+  const no = await MC.sinGuardar(vozFicheros());
+  if (!no.length || mia !== sesion) return;
+  console.warn('[copiloto] no quedó guardado:', no.map(u => u.split('/').pop()).join(', '));
+  const n = $('cacheNote'); n.textContent = t('cacheNote'); n.hidden = false; announce(t('cacheNote'));
+}
+async function paintDlNote() {
+  try {
+    const n = $('dlNote');
+    const falta = await MC.faltan(vozFicheros());
+    vozFaltaBytes = MC.bytesDe(falta);
+    const voz = !falta.length;
+    // Con la IA bajando ahora mismo, se dice que sigue bajando (y su línea de arriba lleva el porcentaje y
+    // el Cancelar): antes decía «Modelos ya descargados» con gigas aún en camino.
+    const iaPend = !!iaModelo && $('iaOpt').checked && !iaBaja && !(await enCache('elffuss-copiloto-llm-v1', IA.MODELOS[iaModelo].url));
+    const partes = [];
+    if (!voz) partes.push(t('dlNoteVoz', { mb: tamano(vozFaltaBytes + MOTOR_MB * 1048576) }));
+    if (iaPend) partes.push(t('dlNoteIA', { mb: tamano(IA.MODELOS[iaModelo].mb * 1048576) }));
+    let nota = partes.length ? t('dlNote', { que: partes.join(' + ') }) : t(iaBaja ? 'dlNoteVozCached' : 'dlNoteCached');
+    // Si no cabe lo que falta del modelo de voz, se dice antes de pulsar Empezar.
+    if (!voz) { const sitio = await MC.espacio(); if (sitio && sitio.libre < vozFaltaBytes) nota += ' ' + t('dlNoSpace', { libre: tamano(sitio.libre), falta: tamano(vozFaltaBytes) }); }
+    n.textContent = iaBaja ? nota + ' ' + t('dlNoteIABaja') : nota;
+    n.hidden = false;
+  } catch {}   // antes de que existan iaModelo/tamano: se repinta al detectar el equipo y el modelo
+}
+// Cómo acaba la carga se anuncia (el chip no es una región viva): lista, o por qué no.
+function iniciarIA() {
+  if (!iaModelo) return;
+  const mia = pantalla;
+  $('iaRetry').hidden = true; $('iaChip').removeAttribute('title');
+  iaChip(t('iaDownloading', { pct: '0 %' }));
+  IA.cargar(iaModelo, (cargado, total, deCache) => {
+    const bajado = deCache || (total && cargado >= total), antes = !!iaBaja;
+    iaBaja = bajado ? null : { cargado, total }; paintIADl();
+    if (antes !== !!iaBaja) paintDlNote();   // empieza o acaba la descarga: la nota del inicio lo dice ya
+    if (mia !== pantalla) return;
+    iaChip(bajado ? t('iaPreparing') : t('iaDownloading', { pct: pctIA(iaBaja) }));
+  }).then(() => {
+    iaBaja = null; paintIADl(); paintDlNote();
+    if (mia !== pantalla) return;
+    const listo = t('iaReady', { modelo: IA.MODELOS[iaModelo].etiqueta }); iaChip(listo); announce(listo);
+    if (on) iaTurno();
+  }).catch(e => {
+    iaBaja = null; paintIADl(); paintDlNote();
+    if (IA.esCancelada(e)) { if (mia === pantalla) iaChip(''); return; }   // la cancelaron: no es un fallo
+    console.warn('[copiloto IA] no carga:', e?.message || e);
+    if (mia !== pantalla) return;
+    // Antes solo decía «IA no disponible», sin motivo ni manera de reintentar.
+    const why = t('iaErrorWhy', { err: String(e?.message || e).slice(0, 120) });
+    iaChip(t('iaError')); $('iaChip').title = why; $('iaRetry').hidden = false; announce(why);
+  });
+}
+// También tras Parar: la próxima llamada empieza con la IA lista. Reintentar se esconde mientras carga:
+// el foco pasa al chip, que dice cómo va (antes caía al <body>).
+$('iaRetry').onclick = () => { const f = document.activeElement === $('iaRetry'); iaActiva = true; iniciarIA(); if (f) $('iaChip').focus(); };
+function iaTurno() {
+  // Solo si esta llamada la pidió: con el modelo ya cargado de antes, una llamada sin la casilla la usaba igual.
+  if (!on || !iaActiva || !IA.listo() || !transcript.length) return;
+  const sk = skLLM(skill), mia = sesion;
+  IA.turno({ sk, lineas: transcript.slice(), lang: UI, idioma: IDIOMA_NOMBRE[$('lang').value] || $('lang').value }, r => {
+    if (mia !== sesion || !on) return;   // de una llamada ya parada: no toca la ficha
+    let just = null;
+    if (skill.goals) { for (const k in r.updates) if (r.updates[k] === true && data[k] !== true) { data[k] = true; just = k; } }
+    else for (const [k, v] of Object.entries(r.updates)) {
+      if (REGLAS_DE.has(k) && data[k]) continue;            // lo que las reglas ya sacaron manda
+      if (data[k] !== v) { data[k] = v; just = k; }
+    }
+    iaConsejo = r.advice || (r.action ? fallbackAdvice(sk, data, r.action, UI) : iaConsejo);
+    if (r.rejected?.length) console.debug('[copiloto IA] la gramática rechazó:', r.rejected.join(', '));
+    renderBoard(just);
+  });
+}
+
+// ── galaxia del landing + brillo del ratón (estilo Elffuss) ──
+let __galaxy=null;
+(async()=>{ try{ const m=await import('./splash-gl.js'); const h=$('setupGalaxy'); if(h)__galaxy=m.startGalaxy(h); }catch{} })();
+// Para el chip de disco (un script aparte): lo que ocupa y el vaciado del almacén compartido.
+window.__elffussModelos={ usoCompartido:MC.usoCompartido, vaciarCompartido:MC.vaciarCompartido };
+window.__diskChipPaint?.();
+(()=>{ const c=$('cursorglow'); if(!c)return; let tx=50,ty=28,x=50,y=28,raf;
+  addEventListener('pointermove',e=>{ tx=e.clientX/innerWidth*100; ty=e.clientY/innerHeight*100; if(!raf)raf=requestAnimationFrame(loop); },{passive:true});
+  function loop(){ x+=(tx-x)*.12; y+=(ty-y)*.12; c.style.setProperty('--mx',x+'%'); c.style.setProperty('--my',y+'%'); if(Math.abs(tx-x)>.1||Math.abs(ty-y)>.1)raf=requestAnimationFrame(loop); else raf=null; } })();
+</script>
+<!-- Chip de disco: cuánto ocupan en este navegador los modelos descargados y
+     cómo vaciarlos. Pequeño y permanente, abajo a la izquierda. Solo aparece si
+     hay algo guardado: un chip que ponga «0 MB» es ruido. Autónomo a propósito,
+     para no depender del layout de la app. -->
+<script>
+(function(){
+  var gb=function(n){return n>=1073741824?(n/1073741824).toFixed(1)+' GB':Math.round(n/1048576)+' MB';};
+  var c=document.createElement('button'); c.type='button'; c.id='diskChip';
+  c.style.cssText='position:fixed;left:10px;bottom:10px;z-index:9998;font:11px/1 system-ui,sans-serif;'
+    +'padding:6px 9px;border-radius:999px;border:1px solid rgba(150,146,184,.28);'
+    +'background:rgba(22,23,38,.72);color:#b3afce;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)';
+  c.hidden=true;
+  var quieto=0;   // tras borrar, «✓ Borrado» se ve un momento antes de volver a medir
+  var borrando=false;
+  // Lo que ocupa el almacén compartido de Elffuss (models.elffuss.com), donde van ahora los modelos de
+  // voz. Se pregunta como mucho una vez por minuto (o tras borrar): es otro origen y no sale en estimate().
+  var compartidoUso=0, compartidoEn=0;
+  function compartido(){
+    var m=window.__elffussModelos; if(!m) return Promise.resolve(0);
+    if(Date.now()-compartidoEn<60000) return Promise.resolve(compartidoUso);
+    compartidoEn=Date.now();
+    return m.usoCompartido().then(function(n){compartidoUso=n||0;return compartidoUso;},function(){return compartidoUso;}); }
+  // Si el chip tenía el foco al esconderse, pasa a Empezar (o a Parar / Nueva llamada en la llamada)
+  // en vez de caer al <body>.
+  function esconder(){
+    var tenia=document.activeElement===c; c.hidden=true; if(!tenia) return;
+    var s=document.getElementById('setup'), cand=(s&&!s.hidden)?['start']:['stop','newCall'];
+    for(var i=0;i<cand.length;i++){ var f=document.getElementById(cand[i]); if(f&&!f.hidden&&!f.disabled){ f.focus(); return; } } }
+  function paint(){
+    if(Date.now()<quieto) return;
+    var p=document.getElementById('dlBar'); if(p && !p.hidden){esconder();return;}   // mientras baja no se ofrece vaciar
+    if(!navigator.storage||!navigator.storage.estimate||!window.caches){esconder();return;}
+    Promise.all([navigator.storage.estimate(),caches.keys(),compartido()]).then(function(r){
+      var e=r[0], uso=(e.usage||0)+r[2];
+      // estimate() tarda en enterarse de un borrado y seguía diciendo «6 MB»: sin cachés de modelos ni
+      // nada en el almacén compartido, nada que vaciar (la caché de la propia app no son modelos).
+      var modelos=r[1].filter(function(k){return k.indexOf('elffuss-app-')!==0;}).length;
+      if(!uso||(!modelos&&r[2]<1048576)){esconder();return;}
+      c.hidden=false; c.textContent='\u{1F4BE} '+gb(uso);
+      var en=(document.documentElement.lang||'').indexOf('en')===0;
+      c.title=(en?'Elffuss models stored in this browser: ':'Modelos de Elffuss guardados en este navegador: ')+gb(uso)
+        +(e.quota?(en?' of ':' de ')+gb(e.quota)+(en?' available':' disponibles'):'')+(en?'. Click to clear it.':'. Pulsa para vaciarlo.');
+      c.setAttribute('aria-label',(en?'Stored models: ':'Modelos guardados: ')+gb(uso)+(en?'. Press to clear':'. Pulsa para vaciar'));
+    }).catch(function(){esconder();});
+  }
+  c.onclick=function(){
+    if(borrando) return;
+    Promise.all([navigator.storage.estimate(),compartido()]).then(function(r){
+      var uso=(r[0].usage||0)+r[1];
+      var en=(document.documentElement.lang||'').indexOf('en')===0;
+      if(!confirm(en
+        ? 'This will delete '+gb(uso)+' of models stored in this browser.\n\nNothing of yours is lost: only the downloaded models. They are also deleted for the other Elffuss sites (Translator, Claw…), which share the same store. They will download again next time.\n\nContinue?'
+        : 'Vas a borrar '+gb(uso)+' de modelos guardados en este navegador.\n\nNo se pierde nada tuyo: solo los modelos descargados. Se borran también para las demás webs de Elffuss (Traductor, Claw…), que comparten el mismo almacén. La próxima vez se volverán a descargar.\n\n¿Seguir?')) return;
+      // Sin disabled (tiraba el foco al <body>): aria-disabled y los clics se ignoran mientras borra.
+      c.textContent='\u{1F4BE} …'; borrando=true; c.setAttribute('aria-disabled','true');
+      caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k.indexOf('elffuss-app-')!==0;}).map(function(k){return caches.delete(k);}));})
+        .then(function(){ return navigator.storage.getDirectory?navigator.storage.getDirectory():null; })
+        .then(async function(d){ if(!d)return; for await (var n of d.keys()){ try{ await d.removeEntry(n,{recursive:true}); }catch(_){} } })
+        .catch(function(){})
+        .then(function(){ var m=window.__elffussModelos; return m?m.vaciarCompartido().catch(function(){}):null; })
+        .then(function(){
+          compartidoEn=0; borrando=false; c.removeAttribute('aria-disabled'); c.textContent=en?'\u2713 Deleted':'\u2713 Borrado'; c.setAttribute('aria-label',en?'Models deleted':'Modelos borrados');
+          quieto=Date.now()+2500; setTimeout(function(){ quieto=0; paint(); },2600);
+        });
+    });
+  };
+  document.body.appendChild(c); paint(); setInterval(paint,20000);
+  window.__diskChipPaint=function(){ compartidoEn=0; paint(); };   // la app avisa cuando ya puede preguntar al almacén compartido
+  var dp=document.getElementById('dlBar'); if(dp && window.MutationObserver) new MutationObserver(window.__diskChipPaint).observe(dp,{attributes:true,attributeFilter:['hidden']});
+})();
+</script>
+
+</body>
+</html>

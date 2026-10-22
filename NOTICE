@@ -1,0 +1,15 @@
+Elffuss Copilot
+Copyright 2026 UtopiaIA
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party models, downloaded by the browser from Hugging Face when the page is used (none is included in this repository):
+
+- Whisper (OpenAI), Apache-2.0, in its ONNX build by onnx-community.
+- pyannote/segmentation-3.0 (Hervé Bredin), MIT, in its ONNX build by onnx-community.
+- wespeaker-voxceleb-resnet34-LM (WeSpeaker), CC BY 4.0, in its ONNX build by onnx-community: https://creativecommons.org/licenses/by/4.0/
+  The credit is shown in the page footer; keep it if you fork this page.
+- opus-mt (Helsinki-NLP), Apache-2.0, only when the browser has no built-in translator.
+- Gemma 4 E4B / E2B (Google), optional advanced AI, under the Gemma terms of use.
+
+The models are used unchanged.

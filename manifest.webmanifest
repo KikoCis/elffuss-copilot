@@ -1,0 +1,19 @@
+{
+  "name": "Elffuss Copiloto",
+  "short_name": "Copiloto",
+  "description": "Notas de llamada que se quedan en tu equipo.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090a11",
+  "theme_color": "#090a11",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
