@@ -4,6 +4,8 @@ Skills for your meetings. Copilot listens to a call in your browser, tells the v
 (name, company, role, phone, email, budget, timeline) and tells you what is still missing before you close. With the optional
 advanced AI it also proposes the next move. The record goes where you point it: a CSV, your own webhook or a Google Form.
 
+Elffuss Copilot now lives in the UtopiaIA organization on GitHub, at github.com/utopia-ia/elffuss-copilot. It moved from github.com/KikoCis/elffuss-copilot on 23 October 2026; the old address redirects.
+
 Live: https://copilot.elffuss.com. Free, no account. The audio is transcribed in your browser and does not leave it; only the
 record leaves, to the destination you set, when you press Send.
 
